@@ -32,19 +32,13 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import { StartScreen } from "./components/start-screen";
 import "./index.css";
-import { AboutScreen } from "./components/about-screen";
+import { GestureCanvas } from "./components/gesture-canvas";
 
 const App = () => {
   return (
-    <Router>
-      <div className="bg-[#E6EAEF] flex-1">
-        <Button>Click me</Button>
-        <Routes>
-          <Route path="/" element={<StartScreen />} />
-          <Route path="/about" element={<AboutScreen />} />
-        </Routes>
-      </div>
-    </Router>
+    <div className="bg-slate-950 min-h-screen">
+      <GestureCanvas />
+    </div>
   );
 };
 
@@ -53,3 +47,5 @@ if (container) {
   const root = createRoot(container);
   root.render(<App />);
 }
+
+// Later: detector.stop() or detector.dispose()
