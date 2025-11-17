@@ -27,7 +27,10 @@
  */
 
 import React from "react";
+import { Button } from "./lib/ui/button";
 import { createRoot } from "react-dom/client";
+import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
+import { StartScreen } from "./components/start-screen";
 import "./index.css";
 import { GestureCanvas } from "./components/gesture-canvas";
 
