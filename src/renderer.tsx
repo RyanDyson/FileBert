@@ -29,15 +29,12 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";
+import { GestureCanvas } from "./components/gesture-canvas";
 
 const App = () => {
   return (
-    <div className="bg-slate-950">
-      <h1>💖 Hello World!</h1>
-      <p>Welcome to your Electron application.</p>
-      <p>
-        👋 This message is being logged by "renderer.tsx", included via Vite
-      </p>
+    <div className="bg-slate-950 min-h-screen">
+      <GestureCanvas />
     </div>
   );
 };
@@ -47,3 +44,5 @@ if (container) {
   const root = createRoot(container);
   root.render(<App />);
 }
+
+// Later: detector.stop() or detector.dispose()
