@@ -29,18 +29,22 @@
 import React from "react";
 import { Button } from "./lib/ui/button";
 import { createRoot } from "react-dom/client";
+import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
+import { StartScreen } from "./components/start-screen";
 import "./index.css";
+import { AboutScreen } from "./components/about-screen";
 
 const App = () => {
   return (
-    <div className="bg-slate-950">
-      <Button>Click me</Button>
-      <h1>💖 Hello World!</h1>
-      <p>Welcome to your Electron application.</p>
-      <p>
-        👋 This message is being logged by "renderer.tsx", included via Vite
-      </p>
-    </div>
+    <Router>
+      <div className="bg-[#E6EAEF] flex-1">
+        <Button>Click me</Button>
+        <Routes>
+          <Route path="/" element={<StartScreen />} />
+          <Route path="/about" element={<AboutScreen />} />
+        </Routes>
+      </div>
+    </Router>
   );
 };
 
