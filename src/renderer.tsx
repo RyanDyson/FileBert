@@ -52,3 +52,5 @@ if (container) {
   const root = createRoot(container);
   root.render(<App />);
 }
+
+// Later: detector.stop() or detector.dispose()
