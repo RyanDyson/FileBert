@@ -27,12 +27,14 @@
  */
 
 import React from "react";
+import { Button } from "./lib/ui/button";
 import { createRoot } from "react-dom/client";
 import "./index.css";
 
 const App = () => {
   return (
     <div className="bg-slate-950">
+      <Button>Click me</Button>
       <h1>💖 Hello World!</h1>
       <p>Welcome to your Electron application.</p>
       <p>
