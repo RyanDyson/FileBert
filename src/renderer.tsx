@@ -26,19 +26,24 @@
  * ```
  */
 
-import React from "react";
-import { Button } from "./lib/ui/button";
-import { createRoot } from "react-dom/client";
-import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
-import { StartScreen } from "./components/start-screen";
 import "./index.css";
-import { GestureCanvas } from "./components/gesture-canvas";
+import { createRoot } from "react-dom/client";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { StartScreen } from "./components/start-screen";
+import { AboutScreen } from "./components/about-screen";
+import { MainOverlay } from "./components/main-overlay";
 
 const App = () => {
   return (
-    <div className="bg-slate-950 min-h-screen">
-      <GestureCanvas />
-    </div>
+    <Router>
+      <div className="w-full h-full bg-transparent">
+        <Routes>
+          <Route path="/" element={<MainOverlay />} />
+          <Route path="/start" element={<StartScreen />} />
+          <Route path="/about" element={<AboutScreen />} />
+        </Routes>
+      </div>
+    </Router>
   );
 };
 
