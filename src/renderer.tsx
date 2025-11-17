@@ -27,6 +27,7 @@
  */
 
 import React from "react";
+import { Button } from "./lib/ui/button";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import { StartScreen } from "./components/start-screen";
@@ -37,6 +38,7 @@ const App = () => {
   return (
     <Router>
       <div className="bg-[#E6EAEF] flex-1">
+        <Button>Click me</Button>
         <Routes>
           <Route path="/" element={<StartScreen />} />
           <Route path="/about" element={<AboutScreen />} />
