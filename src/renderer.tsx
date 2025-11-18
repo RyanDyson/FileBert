@@ -28,22 +28,19 @@
 
 import "./index.css";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { Providers } from "@/components/global/providers";
 import { StartScreen } from "./components/start-screen";
 import { AboutScreen } from "./components/about-screen";
 import { MainOverlay } from "./components/main-overlay";
+import { Route } from "react-router-dom";
 
 const App = () => {
   return (
-    <Router>
-      <div className="w-full h-full bg-transparent">
-        <Routes>
-          <Route path="/" element={<MainOverlay />} />
-          <Route path="/start" element={<StartScreen />} />
-          <Route path="/about" element={<AboutScreen />} />
-        </Routes>
-      </div>
-    </Router>
+    <Providers>
+      <Route path="/" element={<MainOverlay />} />
+      <Route path="/start" element={<StartScreen />} />
+      <Route path="/about" element={<AboutScreen />} />
+    </Providers>
   );
 };
 
