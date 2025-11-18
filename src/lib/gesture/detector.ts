@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 import type { GestureData, GestureCallback } from "./types";
 
 export class GestureDetector {
@@ -39,10 +40,10 @@ export class GestureDetector {
 
       // Wait for ml5 to be available
       await this.waitForML5();
-
       // Initialize handpose model using ml5.js v1.x API
-      // @ts-ignore - ml5 will be loaded via script tag
-      this.handpose = await ml5.handPose(this.video, { flipped: true });
+      this.handpose = await (window as any).ml5.handPose(this.video, {
+        flipped: true,
+      });
 
       console.log("✅ Gesture detector initialized");
     } catch (error) {

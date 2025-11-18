@@ -81,7 +81,7 @@ export const MainOverlay = () => {
   return (
     <div
       ref={containerRef}
-      className="w-full h-full bg-card/90 border-b border-border/50 shadow-lg transition-all duration-300 ease-in-out p-0"
+      className="overflow-clip w-full h-full bg-card/90 border-b border-border/50 shadow-lg transition-all duration-300 ease-in-out p-0"
     >
       <div className="flex items-centertransition-all duration-300 ease-in-out opacity-100 divide-x divide-border">
         {/* Left Section - Room Info */}

@@ -36,7 +36,7 @@ import { MainOverlay } from "./components/main-overlay";
 const App = () => {
   return (
     <Router>
-      <div className="w-full h-full bg-transparent">
+      <div className="w-full h-full bg-transparent overflow-clip">
         <Routes>
           <Route path="/" element={<MainOverlay />} />
           <Route path="/start" element={<StartScreen />} />
