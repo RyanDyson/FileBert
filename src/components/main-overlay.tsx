@@ -2,19 +2,36 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Field, FieldLabel, FieldContent } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Pencil, Link2, History, Users, Settings, Save } from "lucide-react";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip";
+import {
+  Pencil,
+  Link2,
+  History,
+  Users,
+  Settings,
+  Save,
+  LogOut,
+} from "lucide-react";
 import { cn } from "../lib/utils";
+import { Link } from "react-router-dom";
 
 const EXPANDED_WIDTH = 650;
 const EXPANDED_HEIGHT = 120;
-const MINIMIZED_WIDTH = 500;
+const MINIMIZED_WIDTH = 600;
 const MINIMIZED_HEIGHT = 50;
 const INACTIVITY_TIMEOUT = 3000;
 
 export const MainOverlay = () => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [editRoomName, setEditRoomName] = useState(false);
+  const [roomCode, setRoomCode] = useState("A123456");
   const [roomName, setRoomName] = useState("Lecture - Example Topic...");
+  const [isTooltipOpen, setIsTooltipOpen] = useState(false);
+  const [copyText, setCopyText] = useState("Copy Room Code");
   const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -81,19 +98,37 @@ export const MainOverlay = () => {
   return (
     <div
       ref={containerRef}
-      className="overflow-clip w-full h-full bg-card/90 border-b border-border/50 shadow-lg transition-all duration-300 ease-in-out p-0"
+      className={cn(
+        "overflow-clip w-full h-full bg-card/90 border-b border-border/50 shadow-lg transition-all duration-300 ease-in-out p-0",
+        !isExpanded && "opacity-30"
+      )}
     >
-      <div className="flex items-centertransition-all duration-300 ease-in-out opacity-100 divide-x divide-border">
+      <div
+        className={cn(
+          "flex items-center w-full h-full transition-all duration-300 ease-in-out opacity-100 divide-x divide-border",
+          isExpanded && "max-h-full"
+        )}
+      >
         {/* Left Section - Room Info */}
-        <div className="flex flex-col max-w-md items-center gap-2 flex-1 py-4 px-4">
+        <div
+          className={cn(
+            "flex flex-col items-center gap-2 flex-1 py-4 px-4",
+            isExpanded ? "max-w-md max-h-full" : "min-w-0"
+          )}
+        >
           {/* Room Name */}
           {isExpanded && (
-            <Field className="flex-1 gap-0">
+            <Field className={cn("flex-1 gap-0", isExpanded && "max-h-full")}>
               <FieldLabel className="text-xs font-light text-muted-foreground">
                 Room Name
               </FieldLabel>
               <FieldContent>
-                <div className="flex items-center gap-2">
+                <div
+                  className={cn(
+                    "flex items-center gap-2",
+                    isExpanded && "max-h-full"
+                  )}
+                >
                   <Input
                     defaultValue={roomName}
                     className={cn(
@@ -121,7 +156,9 @@ export const MainOverlay = () => {
           )}
 
           {/* Room Code */}
-          <Field className="gap-0 w-full min-w-96">
+          <Field
+            className={cn("gap-0 w-full", isExpanded ? "min-w-96" : "min-w-0")}
+          >
             {isExpanded && (
               <FieldLabel className="text-xs font-light text-muted-foreground">
                 Room Code
@@ -131,19 +168,42 @@ export const MainOverlay = () => {
               <div className="flex items-center gap-2 w-full">
                 <div className="flex items-center gap-1 w-full">
                   <Input
-                    defaultValue="A"
+                    defaultValue={roomCode.slice(0, 1)}
                     className="w-12 bg-secondary text-secondary-foreground text-center"
                     disabled
                   />
                   <Input
-                    defaultValue="123456"
+                    defaultValue={roomCode}
                     className="w-full bg-secondary text-secondary-foreground"
                     disabled
+                    onChange={(e) => setRoomCode(e.target.value)}
                   />
                 </div>
-                <Button variant="ghost" size="icon" className="text-primary">
-                  <Link2 className="h-4 w-4" />
-                </Button>
+                <Tooltip open={isTooltipOpen}>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-primary"
+                      onClick={() => {
+                        if (window.electronAPI) {
+                          setCopyText("Copied to Clipboard");
+                          setIsTooltipOpen(true);
+                          window.electronAPI.writeClipboard(roomCode);
+                          setTimeout(() => {
+                            setCopyText("Copy Room Code");
+                            setIsTooltipOpen(false);
+                          }, 2000);
+                        }
+                      }}
+                    >
+                      <Link2 className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{copyText}</p>
+                  </TooltipContent>
+                </Tooltip>
               </div>
             </FieldContent>
           </Field>
@@ -175,6 +235,16 @@ export const MainOverlay = () => {
             <Settings className={cn("h-5 w-5", isExpanded && "h-16 w-16")} />
             {isExpanded && <span className="text-xs">Settings</span>}
           </Button>
+          <Link to="/">
+            <Button
+              variant="ghost"
+              className="text-foreground flex h-fit flex-col items-center justify-center hover:bg-accent"
+              title="Settings"
+            >
+              <LogOut className={cn("h-5 w-5", isExpanded && "h-16 w-16")} />
+              {isExpanded && <span className="text-xs">Logout</span>}
+            </Button>
+          </Link>
         </div>
       </div>
     </div>

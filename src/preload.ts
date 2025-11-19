@@ -6,4 +6,5 @@ import { contextBridge, ipcRenderer } from "electron";
 contextBridge.exposeInMainWorld("electronAPI", {
   resizeWindow: (width: number, height: number) =>
     ipcRenderer.invoke("resize-window", width, height),
+  writeClipboard: (text: string) => ipcRenderer.invoke("write-clipboard", text),
 });

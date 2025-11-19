@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, screen, ipcMain } from "electron";
+import { app, BrowserWindow, Menu, screen, ipcMain, clipboard } from "electron";
 import path from "node:path";
 import started from "electron-squirrel-startup";
 
@@ -15,7 +15,7 @@ const createWindow = () => {
   const { width: screenWidth } = primaryDisplay.workAreaSize;
 
   // Window dimensions (start minimized)
-  const windowWidth = 300;
+  const windowWidth = 400;
   const windowHeight = 50;
 
   // Calculate center position horizontally, stick to top vertically
@@ -102,6 +102,11 @@ const createWindow = () => {
         }, stepDelay * i);
       }
     }
+  });
+
+  // IPC handler for writing to clipboard
+  ipcMain.handle("write-clipboard", async (_, text: string) => {
+    clipboard.writeText(text);
   });
 };
 

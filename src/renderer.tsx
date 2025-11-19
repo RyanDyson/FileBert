@@ -30,7 +30,6 @@ import "./index.css";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { StartScreen } from "./components/start-screen";
-import { AboutScreen } from "./components/about-screen";
 import { MainOverlay } from "./components/main-overlay";
 
 const App = () => {
@@ -40,7 +39,6 @@ const App = () => {
         <Routes>
           <Route path="/" element={<MainOverlay />} />
           <Route path="/start" element={<StartScreen />} />
-          <Route path="/about" element={<AboutScreen />} />
         </Routes>
       </div>
     </Router>
