@@ -37,8 +37,8 @@ import { AboutScreen } from "./components/about-screen";
 const App = () => {
   return (
     <Router>
-      <div className="bg-[#E6EAEF] flex-1">
-        <Button>Click me</Button>
+      <div className="flex-1">
+        
         <Routes>
           <Route path="/" element={<StartScreen />} />
           <Route path="/about" element={<AboutScreen />} />
