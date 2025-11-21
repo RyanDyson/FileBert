@@ -28,20 +28,17 @@
 
 import "./index.css";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { Providers } from "@/components/global/providers";
 import { StartScreen } from "./routes/start-screen";
 import { MainOverlay } from "./routes/main-overlay";
+import { Route } from "react-router-dom";
 
 const App = () => {
   return (
-    <Router>
-      <div className="w-full h-full bg-transparent overflow-clip">
-        <Routes>
-          <Route path="/" element={<StartScreen />} />
-          <Route path="/overlay" element={<MainOverlay />} />
-        </Routes>
-      </div>
-    </Router>
+    <Providers>
+      <Route path="/" element={<StartScreen />} />
+      <Route path="/overlay" element={<MainOverlay />} />
+    </Providers>
   );
 };
 
