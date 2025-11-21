@@ -17,7 +17,8 @@ import {
   LogOut,
 } from "lucide-react";
 import { cn } from "../lib/utils";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { ConfirmOverlay } from "../../components/global/confirm-overlay";
 
 const EXPANDED_WIDTH = 650;
 const EXPANDED_HEIGHT = 120;
@@ -26,12 +27,15 @@ const MINIMIZED_HEIGHT = 50;
 const INACTIVITY_TIMEOUT = 3000;
 
 export const MainOverlay = () => {
+  const navigate = useNavigate();
   const [isExpanded, setIsExpanded] = useState(false);
   const [editRoomName, setEditRoomName] = useState(false);
   const [roomCode, setRoomCode] = useState("A123456");
   const [roomName, setRoomName] = useState("Lecture - Example Topic...");
   const [isTooltipOpen, setIsTooltipOpen] = useState(false);
   const [copyText, setCopyText] = useState("Copy Room Code");
+  const [isHost, setIsHost] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -95,6 +99,16 @@ export const MainOverlay = () => {
     };
   }, [isExpanded, expandWindow, resetInactivityTimer]);
 
+  const handleLeave = async () => {
+    // API call would go here
+    // Switch window back to normal mode and navigate to start screen
+    if (window.electronAPI?.switchToStartScreen) {
+      await window.electronAPI.switchToStartScreen();
+    }
+    navigate("/");
+    setShowConfirm(false);
+  };
+
   return (
     <div
       ref={containerRef}
@@ -103,6 +117,17 @@ export const MainOverlay = () => {
         !isExpanded && "opacity-30"
       )}
     >
+      {showConfirm && (
+        <ConfirmOverlay
+          title={
+            isHost
+              ? "Leaving as host will end the session for all users. Are you sure you want to leave?"
+              : "Are you sure you want to leave the room?"
+          }
+          onConfirm={handleLeave}
+          onCancel={() => setShowConfirm(false)}
+        />
+      )}
       <div
         className={cn(
           "flex items-center w-full h-full transition-all duration-300 ease-in-out opacity-100 divide-x divide-border",
@@ -235,16 +260,15 @@ export const MainOverlay = () => {
             <Settings className={cn("h-5 w-5", isExpanded && "h-16 w-16")} />
             {isExpanded && <span className="text-xs">Settings</span>}
           </Button>
-          <Link to="/">
-            <Button
-              variant="ghost"
-              className="text-foreground flex h-fit flex-col items-center justify-center hover:bg-accent"
-              title="Settings"
-            >
-              <LogOut className={cn("h-5 w-5", isExpanded && "h-16 w-16")} />
-              {isExpanded && <span className="text-xs">Logout</span>}
-            </Button>
-          </Link>
+          <Button
+            variant="ghost"
+            className="text-foreground flex h-fit flex-col items-center justify-center hover:bg-accent"
+            title="Leave"
+            onClick={() => setShowConfirm(true)}
+          >
+            <LogOut className={cn("h-5 w-5", isExpanded && "h-16 w-16")} />
+            {isExpanded && <span className="text-xs">Leave</span>}
+          </Button>
         </div>
       </div>
     </div>

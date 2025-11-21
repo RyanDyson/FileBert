@@ -7,4 +7,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
   resizeWindow: (width: number, height: number) =>
     ipcRenderer.invoke("resize-window", width, height),
   writeClipboard: (text: string) => ipcRenderer.invoke("write-clipboard", text),
+  switchToOverlay: () => ipcRenderer.invoke("switch-to-overlay"),
+  switchToStartScreen: () => ipcRenderer.invoke("switch-to-start-screen"),
 });
