@@ -30,7 +30,7 @@ import React from "react";
 import { Button } from "./lib/ui/button";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
-import { StartScreen } from "./components/start-screen";
+import { MembersScreen } from "./components/start-screen";
 import "./index.css";
 import { AboutScreen } from "./components/about-screen";
 
@@ -40,7 +40,7 @@ const App = () => {
       <div className="flex-1">
         
         <Routes>
-          <Route path="/" element={<StartScreen />} />
+          <Route path="/" element={<MembersScreen />} />
           <Route path="/about" element={<AboutScreen />} />
         </Routes>
       </div>
