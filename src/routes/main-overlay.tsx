@@ -30,7 +30,7 @@ export const MainOverlay = () => {
   const navigate = useNavigate();
   const [isExpanded, setIsExpanded] = useState(false);
   const [editRoomName, setEditRoomName] = useState(false);
-  const [roomCode, setRoomCode] = useState("A123456");
+  const [roomCode, setRoomCode] = useState("123456");
   const [roomName, setRoomName] = useState("Lecture - Example Topic...");
   const [isTooltipOpen, setIsTooltipOpen] = useState(false);
   const [copyText, setCopyText] = useState("Copy Room Code");
@@ -49,6 +49,7 @@ export const MainOverlay = () => {
   const minimizeWindow = useCallback(async () => {
     if (isExpanded && window.electronAPI) {
       setIsExpanded(false);
+      setShowConfirm(false);
       await window.electronAPI.resizeWindow(MINIMIZED_WIDTH, MINIMIZED_HEIGHT);
     }
   }, [isExpanded]);
@@ -117,7 +118,7 @@ export const MainOverlay = () => {
         !isExpanded && "opacity-30"
       )}
     >
-      {showConfirm && (
+      {showConfirm && isExpanded && (
         <ConfirmOverlay
           title={
             isHost
@@ -192,11 +193,6 @@ export const MainOverlay = () => {
             <FieldContent className="w-full">
               <div className="flex items-center gap-2 w-full">
                 <div className="flex items-center gap-1 w-full">
-                  <Input
-                    defaultValue={roomCode.slice(0, 1)}
-                    className="w-12 bg-secondary text-secondary-foreground text-center"
-                    disabled
-                  />
                   <Input
                     defaultValue={roomCode}
                     className="w-full bg-secondary text-secondary-foreground"

@@ -17,7 +17,7 @@ const createWindow = () => {
 
   // Window dimensions for start screen (normal window)
   const windowWidth = 500;
-  const windowHeight = 400;
+  const windowHeight = 500;
 
   // Calculate center position
   const x = Math.floor((screenWidth - windowWidth) / 2);

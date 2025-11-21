@@ -53,6 +53,8 @@ export const toastConfig: Record<
 
 export const TestingToast = ({ action }: { action: Actions }) => {
   return (
-    <div className="w-full h-full fixed z-50 inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center"></div>
+    <div className="w-full h-full fixed z-50 inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center">
+      {toastConfig[action].content}
+    </div>
   );
 };
