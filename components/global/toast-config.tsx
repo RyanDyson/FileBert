@@ -1,5 +1,8 @@
 //some testing component for toasts, do not use in prod
 
+import { RoomCreateToast } from "./toasts/room-created";
+import { RoomJoinedToast } from "./toasts/room-joined";
+
 export enum Actions {
   send = "send",
   receive = "receive",
@@ -32,10 +35,10 @@ export const toastConfig: Record<
     content: <></>,
   },
   [Actions.room_created]: {
-    content: <></>,
+    content: <RoomCreateToast code="123456" />,
   },
   [Actions.room_joined]: {
-    content: <></>,
+    content: <RoomJoinedToast code="123456" />,
   },
   [Actions.user_joined]: {
     content: <></>,
@@ -51,10 +54,6 @@ export const toastConfig: Record<
   },
 };
 
-export const TestingToast = ({ action }: { action: Actions }) => {
-  return (
-    <div className="w-full h-full fixed z-50 inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center">
-      {toastConfig[action].content}
-    </div>
-  );
+export const Toast = ({ action }: { action: Actions }) => {
+  return <div className="w-full h-full">{toastConfig[action].content}</div>;
 };

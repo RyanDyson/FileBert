@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 
-export const ConfirmOverlay = ({
+export const ConfirmDialog = ({
   onConfirm,
   onCancel,
   title,

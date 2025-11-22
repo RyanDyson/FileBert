@@ -9,6 +9,7 @@ import { z } from "zod/v3";
 import { useState } from "react";
 import { NicknamePopup } from "@/components/global/nickname-popup";
 import { Loader2 } from "lucide-react";
+import { WindowWrapper } from "@/components/global/window-wrapper";
 
 const formatZodError = (error: unknown): string => {
   if (typeof error === "string") return error;
@@ -41,7 +42,7 @@ const joinRoomSchema = z.object({
 type CreateRoomForm = z.infer<typeof createRoomSchema>;
 type JoinRoomForm = z.infer<typeof joinRoomSchema>;
 
-export const StartScreen = () => {
+export const Start = () => {
   const navigate = useNavigate();
   const [showNicknamePopup, setShowNicknamePopup] = useState(false);
   const [joinRoomCode, setJoinRoomCode] = useState("");
@@ -118,7 +119,7 @@ export const StartScreen = () => {
   const joinRoomErrors = Object.values(joinRoomForm.formState.errors);
 
   return (
-    <div className="w-full h-full bg-card flex flex-col">
+    <WindowWrapper title="FileBert">
       {loading && (
         <div className="w-full h-full fixed inset-0 bg-primary/50 backdrop-blur-sm flex items-center justify-center z-50">
           <Loader2 className="w-8 h-8 animate-spin text-primary-foreground" />
@@ -132,13 +133,8 @@ export const StartScreen = () => {
         />
       )}
 
-      {/* Header */}
-      <div className="flex items-center pl-28 justify-end px-6 py-3 border-b border-border">
-        <span className="text-sm text-muted-foreground">FileBert</span>
-      </div>
-
       {/* Main Content */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6 py-8 max-w-md mx-auto w-full gap-4">
+      <div className="flex-1 w-full h-full flex flex-col items-center justify-center px-6 py-8 max-w-md mx-auto w-full gap-4">
         {/* Create Room Form */}
         <form
           onSubmit={createRoomForm.handleSubmit(onCreateRoomSubmit)}
@@ -244,6 +240,6 @@ export const StartScreen = () => {
           </div>
         </form>
       </div>
-    </div>
+    </WindowWrapper>
   );
 };
