@@ -30,16 +30,15 @@ import React from "react";
 import { Button } from "./lib/ui/button";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
-import { MembersScreen } from "./components/member-screen";
+import { QuestionScreen } from "./components/question-screen";
 import "./index.css";
 
 const App = () => {
   return (
     <Router>
       <div className="flex-1">
-        
         <Routes>
-          <Route path="/member" element={<MembersScreen />} />
+          <Route path="/question" element={<QuestionScreen />} />
         </Routes>
       </div>
     </Router>
