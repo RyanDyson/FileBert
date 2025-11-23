@@ -1,58 +1,105 @@
-import { app, BrowserWindow, Menu, screen, ipcMain } from "electron";
+import { app, BrowserWindow, Menu, screen, ipcMain, clipboard } from "electron";
 import path from "node:path";
 import started from "electron-squirrel-startup";
 
 let mainWindow: BrowserWindow | null = null;
+const secondaryWindows = new Map<string, BrowserWindow>();
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
   app.quit();
 }
 
-const createWindow = () => {
+const createWindow = (isOverlay = false) => {
   // Get primary display dimensions
   const primaryDisplay = screen.getPrimaryDisplay();
-  const { width: screenWidth } = primaryDisplay.workAreaSize;
+  const { width: screenWidth, height: screenHeight } =
+    primaryDisplay.workAreaSize;
 
-  // Window dimensions (start minimized)
-  const windowWidth = 300;
-  const windowHeight = 50;
+  if (isOverlay) {
+    // Create overlay window (frameless, always on top)
+    const overlayWidth = 600;
+    const overlayHeight = 50;
+    const x = Math.floor((screenWidth - overlayWidth) / 2);
+    const y = 0;
 
-  // Calculate center position horizontally, stick to top vertically
-  const x = Math.floor((screenWidth - windowWidth) / 2);
-  const y = 0; // Stick to top of screen
+    mainWindow = new BrowserWindow({
+      width: overlayWidth,
+      height: overlayHeight,
+      frame: false, // No title bar
+      transparent: true,
+      backgroundColor: "#00000000",
+      alwaysOnTop: true,
+      skipTaskbar: false,
+      resizable: true,
+      hasShadow: true,
+      vibrancy: process.platform === "darwin" ? "under-window" : undefined,
+      visualEffectState: process.platform === "darwin" ? "active" : undefined,
+      x: x,
+      y: y,
+      webPreferences: {
+        preload: path.join(__dirname, "preload.js"),
+        backgroundThrottling: false,
+      },
+    });
 
-  // Create the browser window as an overlay (frameless, always on top)
-  mainWindow = new BrowserWindow({
-    width: windowWidth,
-    height: windowHeight,
-    frame: false, // No title bar
-    transparent: true, // Transparent background
-    backgroundColor: "#00000000", // Fully transparent background
-    alwaysOnTop: true, // Stay on top of other windows
-    skipTaskbar: false,
-    resizable: true,
-    hasShadow: true, // Enable shadow for depth
-    vibrancy: process.platform === "darwin" ? "under-window" : undefined, // macOS native blur
-    visualEffectState: process.platform === "darwin" ? "active" : undefined, // macOS
-    x: x, // Centered horizontally
-    y: y, // Sticky to top
-    webPreferences: {
-      preload: path.join(__dirname, "preload.js"),
-      backgroundThrottling: false,
-    },
-  });
+    mainWindow.setTitle("FileBert");
 
-  Menu.setApplicationMenu(null);
-
-  if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
-    mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
+    if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
+      mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL + "/overlay");
+    } else {
+      mainWindow.loadFile(
+        path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),
+        { hash: "overlay" }
+      );
+    }
   } else {
-    mainWindow.loadFile(
-      path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`)
-    );
-  }
+    // Window dimensions for start screen (normal window)
+    const windowWidth = 500;
+    const windowHeight = 500;
 
+    // Calculate center position
+    const x = Math.floor((screenWidth - windowWidth) / 2);
+    const y = Math.floor((screenHeight - windowHeight) / 2);
+
+    // Create the browser window as a normal window (with frame, not always on top)
+    mainWindow = new BrowserWindow({
+      width: windowWidth,
+      height: windowHeight,
+      frame: true, // Normal title bar with controls
+      transparent: false, // Opaque background
+      backgroundColor: "#f8f9fa", // Match UI background color (light gray)
+      alwaysOnTop: false, // Normal window behavior
+      skipTaskbar: false,
+      resizable: true,
+      hasShadow: true,
+      title: "FileBert", // Set window title
+      titleBarStyle: process.platform === "darwin" ? "hiddenInset" : "default", // macOS: custom title bar area
+      x: x, // Centered horizontally
+      y: y, // Centered vertically
+      webPreferences: {
+        preload: path.join(__dirname, "preload.js"),
+        backgroundThrottling: false,
+      },
+    });
+
+    // Set window title explicitly
+    mainWindow.setTitle("FileBert");
+
+    Menu.setApplicationMenu(null);
+
+    if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
+      mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
+    } else {
+      mainWindow.loadFile(
+        path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`)
+      );
+    }
+  }
+};
+
+// Setup IPC handlers (registered once, globally)
+const setupIpcHandlers = () => {
   // IPC handler for resizing window with smooth animation
   ipcMain.handle("resize-window", async (_, width: number, height: number) => {
     if (mainWindow) {
@@ -103,12 +150,222 @@ const createWindow = () => {
       }
     }
   });
+
+  // IPC handler for writing to clipboard
+  ipcMain.handle("write-clipboard", async (_, text: string) => {
+    clipboard.writeText(text);
+  });
+
+  // IPC handler to switch to overlay mode
+  ipcMain.handle("switch-to-overlay", async () => {
+    if (mainWindow) {
+      const primaryDisplay = screen.getPrimaryDisplay();
+      const { width: screenWidth } = primaryDisplay.workAreaSize;
+
+      const overlayWidth = 600;
+      const overlayHeight = 50;
+      const x = Math.floor((screenWidth - overlayWidth) / 2);
+      const y = 0;
+
+      // Store current window state
+      const wasVisible = mainWindow.isVisible();
+
+      // Close the current window
+      mainWindow.close();
+
+      // Create new frameless overlay window
+      mainWindow = new BrowserWindow({
+        width: overlayWidth,
+        height: overlayHeight,
+        frame: false, // No title bar
+        transparent: true,
+        backgroundColor: "#00000000",
+        alwaysOnTop: true,
+        skipTaskbar: false,
+        resizable: true,
+        hasShadow: true,
+        vibrancy: process.platform === "darwin" ? "under-window" : undefined,
+        visualEffectState: process.platform === "darwin" ? "active" : undefined,
+        x: x,
+        y: y,
+        webPreferences: {
+          preload: path.join(__dirname, "preload.js"),
+          backgroundThrottling: false,
+        },
+      });
+
+      mainWindow.setTitle("FileBert");
+
+      // Load the URL
+      if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
+        mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL + "/overlay");
+      } else {
+        mainWindow.loadFile(
+          path.join(
+            __dirname,
+            `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`
+          ),
+          { hash: "overlay" }
+        );
+      }
+
+      if (wasVisible) {
+        mainWindow.show();
+      }
+    }
+  });
+
+  // IPC handler to switch back to start screen (normal window)
+  ipcMain.handle("switch-to-start-screen", async () => {
+    if (mainWindow) {
+      const primaryDisplay = screen.getPrimaryDisplay();
+      const { width: screenWidth, height: screenHeight } =
+        primaryDisplay.workAreaSize;
+
+      const windowWidth = 500;
+      const windowHeight = 600;
+      const x = Math.floor((screenWidth - windowWidth) / 2);
+      const y = Math.floor((screenHeight - windowHeight) / 2);
+
+      // Store current window state
+      const wasVisible = mainWindow.isVisible();
+
+      // Close the current window
+      mainWindow.close();
+
+      // Create new normal window
+      mainWindow = new BrowserWindow({
+        width: windowWidth,
+        height: windowHeight,
+        frame: true, // Normal title bar with controls
+        transparent: false, // Opaque background
+        backgroundColor: "#f8f9fa", // Match UI background color
+        alwaysOnTop: false, // Normal window behavior
+        skipTaskbar: false,
+        resizable: true,
+        hasShadow: true,
+        title: "FileBert",
+        titleBarStyle:
+          process.platform === "darwin" ? "hiddenInset" : "default",
+        x: x,
+        y: y,
+        webPreferences: {
+          preload: path.join(__dirname, "preload.js"),
+          backgroundThrottling: false,
+        },
+      });
+
+      mainWindow.setTitle("FileBert");
+
+      // Load the URL (start screen)
+      if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
+        mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
+      } else {
+        mainWindow.loadFile(
+          path.join(
+            __dirname,
+            `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`
+          )
+        );
+      }
+
+      if (wasVisible) {
+        mainWindow.show();
+      }
+    }
+  });
+
+  // Helper function to create a secondary window (like start screen styling)
+  const createSecondaryWindow = (route: string, title: string) => {
+    const primaryDisplay = screen.getPrimaryDisplay();
+    const { width: screenWidth, height: screenHeight } =
+      primaryDisplay.workAreaSize;
+
+    const windowWidth = 500;
+    const windowHeight = 500;
+    const x = Math.floor((screenWidth - windowWidth) / 2);
+    const y = Math.floor((screenHeight - windowHeight) / 2);
+
+    // Check if window already exists
+    const existingWindow = secondaryWindows.get(route);
+    if (existingWindow && !existingWindow.isDestroyed()) {
+      existingWindow.focus();
+      return;
+    }
+
+    const newWindow = new BrowserWindow({
+      width: windowWidth,
+      height: windowHeight,
+      frame: true,
+      transparent: false,
+      backgroundColor: "#f8f9fa",
+      alwaysOnTop: false,
+      skipTaskbar: false,
+      resizable: true,
+      hasShadow: true,
+      title: title,
+      titleBarStyle: process.platform === "darwin" ? "hiddenInset" : "default",
+      x: x,
+      y: y,
+      webPreferences: {
+        preload: path.join(__dirname, "preload.js"),
+        backgroundThrottling: false,
+      },
+    });
+
+    newWindow.setTitle(title);
+
+    // Load the URL
+    if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
+      newWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL + route);
+    } else {
+      newWindow.loadFile(
+        path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),
+        { hash: route.slice(1) }
+      );
+    }
+
+    // Clean up when window is closed
+    newWindow.on("closed", () => {
+      secondaryWindows.delete(route);
+    });
+
+    secondaryWindows.set(route, newWindow);
+  };
+
+  // IPC handler to open members window
+  ipcMain.handle("open-members-window", async () => {
+    createSecondaryWindow("/members", "FileBert - Members");
+  });
+
+  // IPC handler to open settings window
+  ipcMain.handle("open-settings-window", async () => {
+    createSecondaryWindow("/settings", "FileBert - Settings");
+  });
+
+  // IPC handler to open history window
+  ipcMain.handle("open-history-window", async () => {
+    createSecondaryWindow("/history", "FileBert - History");
+  });
+
+  // IPC handler to set toast action (from secondary windows to main overlay)
+  ipcMain.handle("set-toast-action", async (_, action: string | null) => {
+    // Send the action to the main overlay window
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send("toast-action-changed", action);
+    }
+  });
 };
+
+// Setup IPC handlers before creating window
+setupIpcHandlers();
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.on("ready", createWindow);
+app.on("ready", () => {
+  createWindow(false); // Start with normal window (start screen)
+});
 
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits
