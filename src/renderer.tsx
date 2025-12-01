@@ -42,7 +42,7 @@ const App = () => {
   const [toastAction, setToastAction] = useState<Actions | null>(null);
   return (
     <Providers>
-      <Route path="/" element={<Start />} />
+      <Route path="/history" element={<Start />} />
       <Route
         path="/overlay"
         element={
@@ -51,7 +51,7 @@ const App = () => {
       />
       <Route path="/members" element={<Members />} />
       <Route path="/settings" element={<Settings />} />
-      <Route path="/history" element={<History />} />
+      <Route path="/" element={<History />} />
     </Providers>
   );
 };
