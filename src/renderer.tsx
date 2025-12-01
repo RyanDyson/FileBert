@@ -52,8 +52,8 @@ const App = () => {
       />
       <Route path="/members" element={<Members />} />
       <Route path="/settings" element={<Settings />} />
-      <Route path="/question" element={<Question />} />
       <Route path="/history" element={<History />} />
+      <Route path="/question" element={<Question />} />
     </Providers>
   );
 };
