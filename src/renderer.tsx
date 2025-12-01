@@ -34,9 +34,10 @@ import { Start } from "./routes/start";
 import { MainOverlay } from "./routes/main-overlay";
 import { Members } from "./routes/members";
 import { Settings } from "./routes/settings";
-import { History } from "./routes/history";
+import { Question } from "./routes/question";
 import { Actions } from "@/components/global/toast-config";
 import { useState } from "react";
+import { History } from "./routes/history";
 
 const App = () => {
   const [toastAction, setToastAction] = useState<Actions | null>(null);
@@ -52,6 +53,7 @@ const App = () => {
       <Route path="/members" element={<Members />} />
       <Route path="/settings" element={<Settings />} />
       <Route path="/history" element={<History />} />
+      <Route path="/question" element={<Question />} />
     </Providers>
   );
 };
