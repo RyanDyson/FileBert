@@ -2,11 +2,16 @@
 
 import { RoomCreateToast } from "./toasts/room-created";
 import { RoomJoinedToast } from "./toasts/room-joined";
+import { UserJoinedToast } from "./toasts/user-joined";
+import { SendFileToast } from "./toasts/send-file";
+import { DownloadFileToast } from "./toasts/receive-file";
+import { PingerUserToast } from "./toasts/pinged-user";
+import { QuestionAskedToast } from "./toasts/question-asked";
+import { QuestionAnsweredToast } from "./toasts/questio-answered";
 
 export enum Actions {
   send = "send",
   receive = "receive",
-  reject = "reject",
   pinged = "pinged",
   room_created = "room_created",
   room_joined = "room_joined", //toast for user, when they join the room
@@ -23,16 +28,13 @@ export const toastConfig: Record<
   }
 > = {
   [Actions.send]: {
-    content: <></>,
+    content: <SendFileToast fileName="example.pdf" isSending={false} />,
   },
   [Actions.receive]: {
-    content: <></>,
-  },
-  [Actions.reject]: {
-    content: <></>,
+    content: <DownloadFileToast fileName="example.pdf" isDownloading={false} />,
   },
   [Actions.pinged]: {
-    content: <></>,
+    content: <PingerUserToast />,
   },
   [Actions.room_created]: {
     content: <RoomCreateToast code="123456" />,
@@ -41,19 +43,31 @@ export const toastConfig: Record<
     content: <RoomJoinedToast code="123456" />,
   },
   [Actions.user_joined]: {
-    content: <></>,
+    content: <UserJoinedToast name="John Doe" />,
   },
   [Actions.question_asked]: {
-    content: <></>,
+    content: <QuestionAskedToast />,
   },
   [Actions.question_answered_yes]: {
-    content: <></>,
+    content: <QuestionAnsweredToast answer={true} />,
   },
   [Actions.question_answered_no]: {
-    content: <></>,
+    content: <QuestionAnsweredToast answer={false} />,
   },
 };
 
-export const Toast = ({ action }: { action: Actions }) => {
+type ToastProps = {
+  isLoading?: boolean;
+  fileName?: string;
+  code?: string;
+};
+
+export const Toast = ({
+  action,
+  props,
+}: {
+  action: Actions;
+  props: ToastProps;
+}) => {
   return <div className="w-full h-full">{toastConfig[action].content}</div>;
 };
