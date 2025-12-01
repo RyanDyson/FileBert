@@ -51,7 +51,7 @@ const App = () => {
       />
       <Route path="/members" element={<Members />} />
       <Route path="/settings" element={<Settings />} />
-      <Route path="/" element={<History />} />
+      <Route path="/" element={<Members />} />
     </Providers>
   );
 };
