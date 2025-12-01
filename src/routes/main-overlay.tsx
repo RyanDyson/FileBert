@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Pencil, History, Users, Settings, Save, LogOut } from "lucide-react";
 import { cn } from "../lib/utils";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { ConfirmDialog } from "../../components/global/confirm-dialog";
 import { CopyButton } from "../../components/global/copy-button";
 import { Actions, Toast } from "@/components/global/toast-config";
@@ -26,12 +26,36 @@ export const MainOverlay = ({
   const navigate = useNavigate();
   const [isExpanded, setIsExpanded] = useState(false);
   const [editRoomName, setEditRoomName] = useState(false);
-  const [roomCode, setRoomCode] = useState("123456");
+  const [roomCode, setRoomCode] = useState("123");
   const [roomName, setRoomName] = useState("Lecture - Example Topic...");
-  const [isHost, setIsHost] = useState(true);
+  const [isHost, setIsHost] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    //DEFAK IDK WHY IS IT NOT RERENDERINGGNNEOAFNOWN
+    const fetchOverlayData = async () => {
+      try {
+        const overlayData = await window.electronAPI.getOverlayData();
+        setRoomCode((prev) => {
+          console.log("Previous roomCode:", prev, "New roomCode:", overlayData.roomId);
+          return overlayData.roomId;
+        });
+
+        setIsHost((prev) => {
+          const newIsHost = overlayData.current_roles === "H";
+          console.log("Previous isHost:", prev, "New isHost:", newIsHost);
+          return newIsHost;
+        });
+      } catch (error) {
+        console.error("Failed to fetch overlay data:", error);
+      }
+    };
+
+    fetchOverlayData();
+  }, []);
+
   const expandWindow = useCallback(() => {
     if (!isExpanded) {
       setIsExpanded(true);

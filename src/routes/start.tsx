@@ -10,6 +10,7 @@ import { useState } from "react";
 import { NicknamePopup } from "@/components/global/nickname-popup";
 import { Loader2 } from "lucide-react";
 import { WindowWrapper } from "@/components/global/window-wrapper";
+import { useQuery } from "@tanstack/react-query";
 
 const formatZodError = (error: unknown): string => {
   if (typeof error === "string") return error;
@@ -63,17 +64,32 @@ export const Start = () => {
     },
   });
 
-  const onCreateRoomSubmit = async (data: CreateRoomForm) => {
+  const onCreateRoomSubmit = async (dataForm: CreateRoomForm) => {
     setLoading(true);
+    console.log("Clicked");
     try {
-      // API call would go here
-      // await createRoom({ roomName: data.roomName, nickname: data.nickname });
+      const response = await fetch("https://filebertbackend.netlify.app/api/createRoom", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username: dataForm.nickname }),
+      });
+
+      const responseData = await response.json();
+      const roomId = responseData.roomId;
+      const current_roles = responseData.current_roles;
+
+      if (!response.ok) {
+        throw new Error("Failed to create room");
+      }
+
       setTimeout(async () => {
         setLoading(false);
         if (window.electronAPI?.switchToOverlay) {
-          await window.electronAPI.switchToOverlay();
+          await window.electronAPI.switchToOverlay(roomId, current_roles);
         }
-        navigate("/overlay");
+        navigate(`/overlay`);
       }, 1000);
     } catch (error) {
       console.error("Failed to create room:", error);
@@ -106,7 +122,7 @@ export const Start = () => {
 
       setShowNicknamePopup(false);
       if (window.electronAPI?.switchToOverlay) {
-        await window.electronAPI.switchToOverlay();
+        await window.electronAPI.switchToOverlay("test", "h");
       }
       navigate("/overlay");
     } catch (error) {
