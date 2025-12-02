@@ -283,8 +283,8 @@ const setupIpcHandlers = () => {
     const { width: screenWidth, height: screenHeight } =
       primaryDisplay.workAreaSize;
 
-    const windowWidth = 500;
-    const windowHeight = 500;
+    const windowWidth = 800;
+    const windowHeight = 700;
     const x = Math.floor((screenWidth - windowWidth) / 2);
     const y = Math.floor((screenHeight - windowHeight) / 2);
 
