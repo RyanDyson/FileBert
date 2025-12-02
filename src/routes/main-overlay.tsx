@@ -31,6 +31,8 @@ export const MainOverlay = ({
   const [nickname, setNickname] = useState("Nick name");
   const [isHost, setIsHost] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
+  const [message, setMessage] = useState<string>("");
   const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -181,6 +183,71 @@ export const MainOverlay = ({
       setShowConfirm(false);
     } catch(error) {
       console.error("Failed to leave room:", error);
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!file) {
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("username", nickname);
+    formData.append("roomId", roomCode);
+
+    try {
+      const response = await fetch("/api/sending", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        setMessage("File uploaded successfully.");
+      } else {
+        setMessage(`Error: ${data.error}`);
+      }
+    } catch (error) {
+      if (error instanceof Error) {
+        setMessage(`Error: ${error.message}`);
+      } else {
+        setMessage("An unknown error occurred during file upload.");
+      }
+    }
+  };
+
+  const handleDownload = async () => {
+    try {
+      const res = await fetch(`/api/receive?roomId=${encodeURIComponent(roomCode)}`);
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || res.statusText);
+      }
+
+      const blob = await res.blob();
+      const disposition = res.headers.get("content-disposition") || "";
+      let filename = `download_${roomCode}`;
+      const match = /filename\*?=([^;]+)/i.exec(disposition);
+      if (match) {
+        filename = match[1].replace(/(^\"|\"$)/g, "");
+      }
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      setMessage("File downloaded successfully.");
+    } catch (error) {
+      if (error instanceof Error) {
+        setMessage(`Download error: ${error.message}`);
+      } else {
+        setMessage("An unknown error occurred during download.");
+      }
     }
   };
 
