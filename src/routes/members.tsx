@@ -9,8 +9,16 @@ interface Member {
   givePermission: boolean;
 }
 
+interface MemberObject {
+  username: string;
+  current_roles: string;
+
+}
+
 export const Members = () => {
   const [count, setCount] = useState<number>(0);
+  const [roomCode, setRoomCode] = useState("");
+  const [membersData, setMembersData] = useState<MemberObject[]>([]);
   const members = [
     { name: "Sarah", call: false, remove: false, givePermission: false }, 
     { name: "Mike", call: false, remove: false, givePermission: false }
@@ -19,6 +27,45 @@ export const Members = () => {
   useEffect(() => {
     setCount(members.length);
   }, [members]);
+
+  useEffect(() => {
+    const fetchOverlayData = async () => {
+      try {
+        const overlayData = await window.electronAPI.getOverlayData();
+        setRoomCode((prev) => {
+          console.log("Previous roomCode:", prev, "New roomCode:", overlayData.roomId);
+          return overlayData.roomId;
+        });
+      } catch (error) {
+        console.error("Failed to fetch overlay data:", error);
+      }
+    };
+
+    fetchOverlayData();
+  }, []);
+
+  useEffect(() => {
+    const fetchMembers = async () => {
+      try {
+        const response = await fetch(`https://filebertbackend.netlify.app/api/members?roomId=${encodeURIComponent(roomCode)}`);
+        const responseData = await response.json();
+        const members: MemberObject[] = responseData.members;
+
+        if (members) {
+          setMembersData(members);
+          console.log("Successfully fetched members data:", members);
+        } else {
+          console.error("Failed to fetch members data.");
+        }
+      } catch (error) {
+        console.error("Error fetching members data:", error);
+      }
+    };
+
+    if (roomCode) {
+      fetchMembers();
+    }
+  }, [roomCode]);
 
   const handleCall = (memberName: string) => {
     console.log(`Calling ${memberName}`);
@@ -38,7 +85,7 @@ export const Members = () => {
         <div className="flex flex-row justify-between items-center mb-6">
           <div className="flex flex-row gap-2 items-center">
             <UsersRound className="text-white"/>
-            <h1 className="text-xl font-semibold text-white">Room Members ({count})</h1>
+            <h1 className="text-xl font-semibold text-white">Room Members ({membersData.length})</h1>
           </div>
           <div className="relative w-64">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-black/50" size={20} />
@@ -72,8 +119,8 @@ export const Members = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#b3b8be]">
-              {members.map((item) => (
-                <tr key={item.name} className="hover:bg-gray-50">
+              {membersData.map((item) => (
+                <tr key={item.username} className="hover:bg-gray-50">
                   {/* Member icon */}
                   <td className="px-6 py-4 whitespace-nowrap text-center">
                     <UserRound className="text-black" size={20} />
@@ -81,13 +128,13 @@ export const Members = () => {
                   
                   {/* Member name */}
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"> 
-                    <span className="font-medium">{item.name}</span>
+                    <span className="font-medium">{item.username}</span>
                   </td>
                   
                   {/* Call button */}
                   <td className="px-4 py-4 whitespace-nowrap text-center">
                     <button 
-                      onClick={() => handleCall(item.name)}
+                      onClick={() => handleCall(item.username)}
                       className="flex items-center gap-2 bg-[#f6f7f9] text-black px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors"
                     >
                       <Hand size={16} />
@@ -98,7 +145,7 @@ export const Members = () => {
                   {/* Remove button */}
                   <td className="px-4 py-4 whitespace-nowrap text-center">
                     <button 
-                      onClick={() => handleRemove(item.name)}
+                      onClick={() => handleRemove(item.username)}
                       className="flex items-center gap-2 bg-[#f6f7f9] text-black px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors"
                     >
                       <X size={16} />
@@ -109,7 +156,7 @@ export const Members = () => {
                   {/* Permission button */}
                   <td className="px-4 py-4 whitespace-nowrap text-center">
                     <button 
-                      onClick={() => handlePermission(item.name)}
+                      onClick={() => handlePermission(item.username)}
                       className="flex items-center gap-2 bg-[#f6f7f9] text-black px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors whitespace-nowrap"
                     >
                       <RefreshCcw size={16} />

@@ -220,10 +220,6 @@ const setupIpcHandlers = () => {
         mainWindow.show();
       }
 
-      mainWindow.on("ready-to-show", () => {
-        mainWindow.webContents.openDevTools();
-      });
-
       roomId = newRoomId;
       current_roles = newCurrentRoles;
       username = newUsername;
@@ -337,6 +333,10 @@ const setupIpcHandlers = () => {
     });
 
     newWindow.setTitle(title);
+
+    newWindow.once("ready-to-show", () => {
+      newWindow.webContents.openDevTools();
+    });
 
     // Load the URL
     if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
