@@ -101,8 +101,7 @@ export const Start = () => {
   const onJoinRoomSubmit = async (data: JoinRoomForm) => {
     setLoading(true);
     try {
-      // API call would go here
-      // const result = await joinRoom({ roomCode: data.roomCode });
+      //call in set nickname
 
       // Simulate successful join - show nickname popup
       setTimeout(async () => {
@@ -118,12 +117,26 @@ export const Start = () => {
 
   const handleNicknameSubmit = async (nickname: string) => {
     try {
-      // API call would go here with nickname
-      // await submitNickname({ roomCode: joinRoomCode, nickname });
+      const response = await fetch("https://filebertbackend.netlify.app/api/join", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ roomId: joinRoomCode, username: nickname }),
+      });
+
+      const responseData = await response.json();
+      const roomId = responseData.roomId;
+      const current_roles = responseData.current_roles;
+      const username = nickname;
+
+      if (!response.ok) {
+        throw new Error("Failed to create room");
+      }
 
       setShowNicknamePopup(false);
       if (window.electronAPI?.switchToOverlay) {
-        await window.electronAPI.switchToOverlay("test", "h", "nickname");
+        await window.electronAPI.switchToOverlay(roomId, current_roles, username);
       }
       navigate("/overlay");
     } catch (error) {
