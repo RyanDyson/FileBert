@@ -7,6 +7,7 @@ const secondaryWindows = new Map<string, BrowserWindow>();
 
 let roomId: string | null = null;
 let current_roles: string | null = null;
+let username: string | null = null;
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -43,11 +44,12 @@ const createWindow = (isOverlay = false) => {
       webPreferences: {
         preload: path.join(__dirname, "preload.js"),
         backgroundThrottling: false,
+        webSecurity: false,
+        nodeIntegration: true,
       },
     });
 
     mainWindow.setTitle("FileBert");
-    mainWindow.webContents.openDevTools();
 
     if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
       mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL + "/overlay");
@@ -87,11 +89,6 @@ const createWindow = (isOverlay = false) => {
         webSecurity: false,
         nodeIntegration: true,
       },
-    });
-
-    // Set window title explicitly
-    mainWindow.on("ready-to-show", () => {
-      mainWindow.webContents.openDevTools();
     });
 
     Menu.setApplicationMenu(null);
@@ -165,7 +162,7 @@ const setupIpcHandlers = () => {
   });
 
   // IPC handler to switch to overlay mode
-  ipcMain.handle("switch-to-overlay", async (_, newRoomId, newCurrentRoles) => {
+  ipcMain.handle("switch-to-overlay", async (_, newRoomId, newCurrentRoles, newUsername) => {
     if (mainWindow) {
       const primaryDisplay = screen.getPrimaryDisplay();
       const { width: screenWidth } = primaryDisplay.workAreaSize;
@@ -199,6 +196,8 @@ const setupIpcHandlers = () => {
         webPreferences: {
           preload: path.join(__dirname, "preload.js"),
           backgroundThrottling: false,
+          webSecurity: false,
+          nodeIntegration: true,
         },
       });
 
@@ -227,12 +226,17 @@ const setupIpcHandlers = () => {
 
       roomId = newRoomId;
       current_roles = newCurrentRoles;
+      username = newUsername;
     }
   });
 
   // IPC handler to switch back to start screen (normal window)
   ipcMain.handle("switch-to-start-screen", async () => {
     if (mainWindow) {
+      roomId = null;
+      current_roles = null;
+      username = null;
+
       const primaryDisplay = screen.getPrimaryDisplay();
       const { width: screenWidth, height: screenHeight } =
         primaryDisplay.workAreaSize;
@@ -267,6 +271,8 @@ const setupIpcHandlers = () => {
         webPreferences: {
           preload: path.join(__dirname, "preload.js"),
           backgroundThrottling: false,
+          webSecurity: false,
+          nodeIntegration: true,
         },
       });
 
@@ -325,6 +331,8 @@ const setupIpcHandlers = () => {
       webPreferences: {
         preload: path.join(__dirname, "preload.js"),
         backgroundThrottling: false,
+        webSecurity: false,
+        nodeIntegration: true,
       },
     });
 
@@ -373,7 +381,7 @@ const setupIpcHandlers = () => {
 
   // IPC handler to get overlay data (roomId and current_roles)
   ipcMain.handle("get-overlay-data", async () => {
-    return { roomId, current_roles };
+    return { roomId, current_roles, username };
   });
 };
 

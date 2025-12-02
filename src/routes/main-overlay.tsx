@@ -28,13 +28,13 @@ export const MainOverlay = ({
   const [editRoomName, setEditRoomName] = useState(false);
   const [roomCode, setRoomCode] = useState("123");
   const [roomName, setRoomName] = useState("Lecture - Example Topic...");
+  const [nickname, setNickname] = useState("Nick name");
   const [isHost, setIsHost] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    //DEFAK IDK WHY IS IT NOT RERENDERINGGNNEOAFNOWN
     const fetchOverlayData = async () => {
       try {
         const overlayData = await window.electronAPI.getOverlayData();
@@ -47,6 +47,12 @@ export const MainOverlay = ({
           const newIsHost = overlayData.current_roles === "H";
           console.log("Previous isHost:", prev, "New isHost:", newIsHost);
           return newIsHost;
+        });
+
+        setNickname((prev) => {
+          const newUsername = overlayData.username;
+          console.log("Previous username:", prev, "New username:", newUsername);
+          return newUsername;
         });
       } catch (error) {
         console.error("Failed to fetch overlay data:", error);
@@ -148,13 +154,34 @@ export const MainOverlay = ({
   }, [isExpanded, expandWindow, resetInactivityTimer]);
 
   const handleLeave = async () => {
-    // API call would go here
-    // Switch window back to normal mode and navigate to start screen
-    if (window.electronAPI?.switchToStartScreen) {
-      await window.electronAPI.switchToStartScreen();
+    let current_roles = 'M';
+    if (isHost){
+      current_roles = 'H'
     }
-    navigate("/");
-    setShowConfirm(false);
+
+    try {
+      const response = await fetch("https://filebertbackend.netlify.app/api/leave", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ roomId: roomCode, username: nickname, current_roles: current_roles }),
+      });
+
+      const responseData = await response.json();
+      const success = responseData.success;
+
+      if(success){
+        if (window.electronAPI?.switchToStartScreen) {
+          await window.electronAPI.switchToStartScreen();
+        }
+        navigate("/");
+        setShowConfirm(false);
+      }
+      setShowConfirm(false);
+    } catch(error) {
+      console.error("Failed to leave room:", error);
+    }
   };
 
   return (

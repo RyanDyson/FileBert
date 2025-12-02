@@ -7,8 +7,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   resizeWindow: (width: number, height: number) =>
     ipcRenderer.invoke("resize-window", width, height),
   writeClipboard: (text: string) => ipcRenderer.invoke("write-clipboard", text),
-  switchToOverlay: (roomId: string, current_roles: string) => {
-    ipcRenderer.invoke("switch-to-overlay", roomId, current_roles);
+  switchToOverlay: (roomId: string, current_roles: string, username: string) => {
+    ipcRenderer.invoke("switch-to-overlay", roomId, current_roles, username);
   },
   switchToStartScreen: () => ipcRenderer.invoke("switch-to-start-screen"),
   openMembersWindow: () => ipcRenderer.invoke("open-members-window"),

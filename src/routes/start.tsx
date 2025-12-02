@@ -66,7 +66,6 @@ export const Start = () => {
 
   const onCreateRoomSubmit = async (dataForm: CreateRoomForm) => {
     setLoading(true);
-    console.log("Clicked");
     try {
       const response = await fetch("https://filebertbackend.netlify.app/api/createRoom", {
         method: "POST",
@@ -79,6 +78,7 @@ export const Start = () => {
       const responseData = await response.json();
       const roomId = responseData.roomId;
       const current_roles = responseData.current_roles;
+      const username = dataForm.nickname
 
       if (!response.ok) {
         throw new Error("Failed to create room");
@@ -87,7 +87,8 @@ export const Start = () => {
       setTimeout(async () => {
         setLoading(false);
         if (window.electronAPI?.switchToOverlay) {
-          await window.electronAPI.switchToOverlay(roomId, current_roles);
+          console.log("Nickname received in main process:", username);
+          await window.electronAPI.switchToOverlay(roomId, current_roles, username);
         }
         navigate(`/overlay`);
       }, 1000);
@@ -122,7 +123,7 @@ export const Start = () => {
 
       setShowNicknamePopup(false);
       if (window.electronAPI?.switchToOverlay) {
-        await window.electronAPI.switchToOverlay("test", "h");
+        await window.electronAPI.switchToOverlay("test", "h", "nickname");
       }
       navigate("/overlay");
     } catch (error) {
