@@ -1,40 +1,11 @@
 import { app, BrowserWindow, Menu, screen, ipcMain, clipboard } from "electron";
 import path from "node:path";
 import started from "electron-squirrel-startup";
-import activeWindow from "active-win";
 
-const allowedExtensions = [".pdf", "docx", ".jpg", ".jpeg"];
-
-const detectFileWindow = async () => {
-  try {
-    const window = await activeWindow();
-
-    if (window && window.title) {
-      const title = window.title.toLowerCase();
-      const isFile = allowedExtensions.some((ext) => title.endsWith(ext));
-
-      if (isFile) {
-        console.log("Detected file window:", {
-          title: window.title,
-          app: window.owner.name,
-        });
-
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.webContents.send("file-detected", {
-            title: window.title,
-            app: window.owner.name,
-          });
-        }
-      }
-    }
-  } catch (error) {
-    console.error("Error detecting active window:", error);
-  }
-};
-
-
-
-setInterval(detectFileWindow, 2000);
+// const ffi = require('ffi-napi');
+// const ref = require('ref-napi');
+// const StructType = require('ref-struct-di')(ref);
+// const ArrayType = require('ref-array-di')(ref);
 
 
 let mainWindow: BrowserWindow | null = null;
