@@ -6,11 +6,15 @@ import { Separator } from "@/components/ui/separator";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod/v3";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { NicknamePopup } from "@/components/global/nickname-popup";
 import { Loader2 } from "lucide-react";
 import { WindowWrapper } from "@/components/global/window-wrapper";
 import { useQuery } from "@tanstack/react-query";
+import Webcam from "react-webcam";
+import { useGesture } from "../lib/gesture/useGesture";
+import { GestureType } from "../lib/gesture/useGesture";
+import useGesture1 from "../hooks/useGesture1";
 
 const formatZodError = (error: unknown): string => {
   if (typeof error === "string") return error;
@@ -48,7 +52,12 @@ export const Start = () => {
   const [showNicknamePopup, setShowNicknamePopup] = useState(false);
   const [joinRoomCode, setJoinRoomCode] = useState("");
   const [loading, setLoading] = useState(false);
-  const webcamRef = useRef();
+  const webcamRef = useRef(null);
+  const { isLoading, error } = useGesture1({
+    cameraRef: {
+      current: webcamRef.current?.video || null,
+    },
+  });
 
   const createRoomForm = useForm<CreateRoomForm>({
     resolver: zodResolver(createRoomSchema),
@@ -270,6 +279,8 @@ export const Start = () => {
             ))}
           </div>
         </form>
+
+        <Webcam hidden={false} ref={webcamRef} />
       </div>
     </WindowWrapper>
   );

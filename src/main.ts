@@ -56,6 +56,7 @@ const createWindow = (isOverlay = false) => {
     });
 
     mainWindow.setTitle("FileBert");
+    mainWindow.webContents.openDevTools();
 
     if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
       mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL + "/overlay");
@@ -98,6 +99,7 @@ const createWindow = (isOverlay = false) => {
     });
 
     Menu.setApplicationMenu(null);
+    mainWindow.webContents.openDevTools();
 
     if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
       mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
