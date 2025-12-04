@@ -27,9 +27,8 @@ const useGesture = ({ cameraRef }: UseGestureOptions) => {
       }
 
       try {
-        // Ensure TensorFlow.js is ready and set the backend
         await tf.ready();
-        await tf.setBackend("webgl"); // Use "webgl" as the backend
+        await tf.setBackend("webgl"); // req webql
 
         // Load the Handpose model
         model = await handpose.load();
@@ -41,16 +40,22 @@ const useGesture = ({ cameraRef }: UseGestureOptions) => {
             console.log("Predictions:", predictions);
 
             predictions.forEach((prediction) => {
-							const { landmarks } = prediction;
+              const { landmarks } = prediction;
 
-							const indexFingerTip = landmarks[8];
-							console.log("Index finger tip:", indexFingerTip);
-						});
-            setHands(
-              predictions.map((prediction) => ({
-                landmarks: prediction.landmarks,
-              }))
-            );
+              const wrist = landmarks[0];
+              const thumb = landmarks[4];
+              const index = landmarks[8];
+              const middle = landmarks[12];
+              const ring = landmarks[16];
+              const pinky = landmarks[20];
+							
+
+              setHands(
+                predictions.map((prediction) => ({
+                  landmarks: prediction.landmarks,
+                }))
+              );
+            });
           }
         };
 
