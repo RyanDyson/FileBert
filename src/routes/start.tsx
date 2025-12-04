@@ -53,7 +53,7 @@ export const Start = () => {
   const [joinRoomCode, setJoinRoomCode] = useState("");
   const [loading, setLoading] = useState(false);
   const webcamRef = useRef(null);
-  const { isLoading, error } = useGesture1({
+  const { isLoading, error, currentGesture } = useGesture1({
     cameraRef: {
       current: webcamRef.current?.video || null,
     },
@@ -281,6 +281,8 @@ export const Start = () => {
         </form>
 
         <Webcam hidden={false} ref={webcamRef} />
+        <p>{`Current gesture:`}</p>
+        <p>{`${currentGesture}`}</p>
       </div>
     </WindowWrapper>
   );
