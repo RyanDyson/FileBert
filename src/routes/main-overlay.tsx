@@ -20,9 +20,9 @@ import type { Dispatch, SetStateAction } from "react";
 import { useGesture } from "../lib/gesture/useGesture";
 
 const EXPANDED_WIDTH = 650;
-const EXPANDED_HEIGHT = 200;
+const EXPANDED_HEIGHT = 160;
 const MINIMIZED_WIDTH = 600;
-const MINIMIZED_HEIGHT = 90;
+const MINIMIZED_HEIGHT = 80;
 const INACTIVITY_TIMEOUT = 3000;
 
 export const MainOverlay = ({
@@ -343,7 +343,7 @@ export const MainOverlay = ({
       )}
     >
       {action && (
-        <div className="absolute top-0 left-0 right-0 z-50">
+        <div className="absolute top-0 left-0 h-full right-0 z-50">
           <Toast
             action={action}
             props={{
@@ -464,7 +464,7 @@ export const MainOverlay = ({
         <div className={cn("flex items-center gap-4 px-4 h-full")}>
           <Button
             variant="ghost"
-            className="text-foreground hover:bg-accent h-full flex flex-col items-center justify-center"
+            className="text-foreground hover:bg-accent h-16 flex flex-col items-center justify-center"
             title="History"
             onClick={() => {
               if (window.electronAPI?.openHistoryWindow) {
@@ -488,21 +488,21 @@ export const MainOverlay = ({
             <Users className="h-5 w-5" />
             {isExpanded && <span className="text-xs">Members</span>}
           </Button>
-          {isHost && (
-            <Button
-              variant="ghost"
-              className="text-foreground flex h-16 flex-col items-center justify-center hover:bg-accent"
-              title="Settings"
-              onClick={() => {
-                if (window.electronAPI?.openSettingsWindow) {
-                  window.electronAPI.openSettingsWindow();
-                }
-              }}
-            >
-              <Settings className={cn("h-5 w-5", isExpanded && "h-16 w-16")} />
-              {isExpanded && <span className="text-xs">Settings</span>}
-            </Button>
-          )}
+
+          <Button
+            variant="ghost"
+            className="text-foreground flex h-16 flex-col items-center justify-center hover:bg-accent"
+            title="Settings"
+            onClick={() => {
+              if (window.electronAPI?.openSettingsWindow) {
+                window.electronAPI.openSettingsWindow();
+              }
+            }}
+          >
+            <Settings className={cn("h-5 w-5", isExpanded && "h-16 w-16")} />
+            {isExpanded && <span className="text-xs">Settings</span>}
+          </Button>
+
           <Button
             variant="ghost"
             className="text-foreground flex h-16 flex-col items-center justify-center hover:bg-accent"
