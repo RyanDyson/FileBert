@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { WindowWrapper } from "@/components/global/window-wrapper";
 import {
   CircleQuestionMark,
@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { Actions } from "@/components/global/toast-config";
 import { cn } from "../lib/utils";
+import { useGesture } from "../lib/gesture/useGesture";
 
 interface QuestionItem {
   id: number;
@@ -24,6 +25,18 @@ export const Question = () => {
   const [isAnswering, setIsAnswering] = useState(false);
   const [status, setStatus] = useState<"intro" | "active" | "outro">("intro");
   const [introCountdown, setIntroCountdown] = useState(3);
+
+  const { currentGesture: yesNoGesture } = useGesture({
+    gesturePair: "yes-no",
+  });
+
+  useEffect(() => {
+    if (yesNoGesture.current === "Yes") {
+      handleAnswer("YES");
+    } else if (yesNoGesture.current === "No") {
+      handleAnswer("NO");
+    }
+  }, [yesNoGesture.current]);
 
   // Intro logic
   useEffect(() => {

@@ -145,7 +145,7 @@ export const Start = () => {
   };
 
   useEffect(() => {
-    if (currentGesture.current) {
+    if (currentGesture.current === "Open Room") {
       toast.success("Gesture detected: " + currentGesture.current);
     }
     if (errorGesture) {

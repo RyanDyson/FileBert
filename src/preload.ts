@@ -24,6 +24,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   openSettingsWindow: () => ipcRenderer.invoke("open-settings-window"),
   openHistoryWindow: () => ipcRenderer.invoke("open-history-window"),
   openQuestionWindow: () => ipcRenderer.invoke("open-question-window"),
+  isQuestionWindowOpen: () => ipcRenderer.invoke("is-question-window-open"),
   setToastAction: (action: string | null, data?: unknown) =>
     ipcRenderer.invoke("set-toast-action", action, data),
   getQuestions: () => ipcRenderer.invoke("get-questions"),
@@ -74,6 +75,14 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.on("gesture-config-updated", handler);
     return () => {
       ipcRenderer.removeListener("gesture-config-updated", handler);
+    };
+  },
+  onQuestionWindowStatus: (callback: (isOpen: boolean) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, isOpen: boolean) =>
+      callback(isOpen);
+    ipcRenderer.on("question-window-status", handler);
+    return () => {
+      ipcRenderer.removeListener("question-window-status", handler);
     };
   },
 });

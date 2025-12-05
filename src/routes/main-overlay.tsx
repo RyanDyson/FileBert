@@ -18,6 +18,7 @@ import { CopyButton } from "../../components/global/copy-button";
 import { Actions, Toast } from "@/components/global/toast-config";
 import type { Dispatch, SetStateAction } from "react";
 import { useGesture } from "../lib/gesture/useGesture";
+import { useMutation } from "@tanstack/react-query";
 
 const EXPANDED_WIDTH = 650;
 const EXPANDED_HEIGHT = 160;
@@ -40,29 +41,50 @@ export const MainOverlay = ({
   const [nickname, setNickname] = useState("Nick name");
   const [isHost, setIsHost] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [file, setFile] = useState<File | null>(null);
-  const [message, setMessage] = useState<string>("");
+  const [isQuestionWindowOpen, setIsQuestionWindowOpen] = useState(false);
   const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const lastActionTimeRef = useRef<number>(0);
+  const ACTION_COOLDOWN = 2000;
+
+  useEffect(() => {
+    if (window.electronAPI?.isQuestionWindowOpen) {
+      window.electronAPI.isQuestionWindowOpen().then((isOpen) => {
+        console.log("Initial question-window-status:", isOpen);
+        setIsQuestionWindowOpen(isOpen);
+      });
+    }
+
+    if (window.electronAPI?.onQuestionWindowStatus) {
+      const cleanup = window.electronAPI.onQuestionWindowStatus((isOpen) => {
+        console.log("Received question-window-status:", isOpen);
+        setIsQuestionWindowOpen(isOpen);
+      });
+      return cleanup;
+    }
+  }, []);
 
   const { currentGesture: closeGesture } = useGesture({
     gesturePair: "open-close",
+    enabled: !isQuestionWindowOpen,
   });
 
   const { currentGesture: sendReceiveGesture } = useGesture({
     gesturePair: "send-receive",
+    enabled: !isQuestionWindowOpen,
   });
 
   const [displayGesture, setDisplayGesture] = useState<string | null>(null);
 
   useEffect(() => {
-    const gesture = closeGesture.current || sendReceiveGesture.current;
-    if (gesture) {
-      if (closeGesture.current === "Close Room") {
-        setDisplayGesture("Close Room");
-      } else {
-        setDisplayGesture(gesture);
-      }
+    const now = Date.now();
+    if (now - lastActionTimeRef.current < ACTION_COOLDOWN) {
+      return;
+    }
+    if (closeGesture.current) {
+      setDisplayGesture(closeGesture.current);
+    } else if (sendReceiveGesture.current) {
+      setDisplayGesture(sendReceiveGesture.current);
     } else {
       const timer = setTimeout(() => {
         setDisplayGesture(null);
@@ -145,6 +167,7 @@ export const MainOverlay = ({
 
   const [toastProps, setToastProps] = useState<{
     question?: string;
+    fileName?: string;
   }>({});
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -229,13 +252,12 @@ export const MainOverlay = ({
     };
   }, [isExpanded, expandWindow, resetInactivityTimer]);
 
-  const handleLeave = async () => {
-    let current_roles = "M";
-    if (isHost) {
-      current_roles = "H";
-    }
-
-    try {
+  const leaveRoomMutation = useMutation({
+    mutationFn: async (data: {
+      roomId: string;
+      username: string;
+      current_roles: string;
+    }) => {
       const response = await fetch(
         "https://filebertbackend.netlify.app/api/leave",
         {
@@ -243,65 +265,103 @@ export const MainOverlay = ({
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            roomId: roomCode,
-            username: nickname,
-            current_roles: current_roles,
-          }),
+          body: JSON.stringify(data),
         }
       );
-
-      const responseData = await response.json();
-      const success = responseData.success;
-
-      if (success) {
+      return response.json();
+    },
+    onSuccess: async (responseData) => {
+      if (responseData.success) {
         if (window.electronAPI?.switchToStartScreen) {
           await window.electronAPI.switchToStartScreen();
         }
         navigate("/");
         setShowConfirm(false);
       }
-      setShowConfirm(false);
-    } catch (error) {
+    },
+    onError: (error) => {
       console.error("Failed to leave room:", error);
+    },
+  });
+
+  const handleLeave = () => {
+    let current_roles = "M";
+    if (isHost) {
+      current_roles = "H";
     }
+    leaveRoomMutation.mutate({
+      roomId: roomCode,
+      username: nickname,
+      current_roles,
+    });
   };
+
+  useEffect(() => {
+    if (closeGesture.current === "Close Room" && !showConfirm) {
+      setIsExpanded(true);
+      setShowConfirm(true);
+    }
+  }, [closeGesture.current, showConfirm]);
+
+  const uploadMutation = useMutation({
+    mutationFn: async (formData: FormData) => {
+      const response = await fetch(
+        "https://filebertbackend.netlify.app/api/sending",
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Upload failed");
+      }
+      return data;
+    },
+    onSuccess: () => {
+      console.log("File uploaded successfully.");
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      setToastProps({ fileName: "testupload1.txt" });
+      setAction(Actions.send);
+      setIsExpanded(true);
+      timeoutRef.current = setTimeout(() => {
+        setAction(null);
+        setIsExpanded(false);
+      }, 3000);
+    },
+    onError: (error: Error) => {
+      console.error("Error uploading file:", error);
+    },
+  });
 
   const handleUpload = async () => {
-    if (!file) {
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("username", nickname);
-    formData.append("roomId", roomCode);
-
     try {
-      const response = await fetch("/api/sending", {
-        method: "POST",
-        body: formData,
+      const blob = new Blob(["static file to upload for testing"], {
+        type: "text/plain",
+      });
+      const staticFile = new File([blob], "testupload1.txt", {
+        type: "text/plain",
       });
 
-      const data = await response.json();
-      if (response.ok) {
-        setMessage("File uploaded successfully.");
-      } else {
-        setMessage(`Error: ${data.error}`);
-      }
+      const formData = new FormData();
+      formData.append("file", staticFile);
+      formData.append("username", nickname);
+      formData.append("roomId", roomCode);
+
+      uploadMutation.mutate(formData);
     } catch (error) {
-      if (error instanceof Error) {
-        setMessage(`Error: ${error.message}`);
-      } else {
-        setMessage("An unknown error occurred during file upload.");
-      }
+      console.error("Error fetching static file:", error);
     }
   };
 
-  const handleDownload = async () => {
-    try {
+  const downloadMutation = useMutation({
+    mutationFn: async (code: string) => {
       const res = await fetch(
-        `/api/receive?roomId=${encodeURIComponent(roomCode)}`
+        `https://filebertbackend.netlify.app/api/receive?roomId=${encodeURIComponent(
+          code
+        )}`
       );
       if (!res.ok) {
         const text = await res.text();
@@ -310,12 +370,14 @@ export const MainOverlay = ({
 
       const blob = await res.blob();
       const disposition = res.headers.get("content-disposition") || "";
-      let filename = `download_${roomCode}`;
+      let filename = `download_${code}`;
       const match = /filename\*?=([^;]+)/i.exec(disposition);
       if (match) {
         filename = match[1].replace(/(^"|"$)/g, "");
       }
-
+      return { blob, filename };
+    },
+    onSuccess: ({ blob, filename }) => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -324,15 +386,53 @@ export const MainOverlay = ({
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-      setMessage("File downloaded successfully.");
-    } catch (error) {
-      if (error instanceof Error) {
-        setMessage(`Download error: ${error.message}`);
-      } else {
-        setMessage("An unknown error occurred during download.");
+      console.log("File downloaded successfully.");
+
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      setToastProps({ fileName: filename });
+      setAction(Actions.receive);
+      setIsExpanded(true);
+      timeoutRef.current = setTimeout(() => {
+        setAction(null);
+        setIsExpanded(false);
+      }, 3000);
+    },
+    onError: (error: Error) => {
+      console.error(`Download error: ${error.message}`);
+    },
+  });
+
+  const handleDownload = () => {
+    downloadMutation.mutate(roomCode);
+  };
+
+  useEffect(() => {
+    const now = Date.now();
+    if (now - lastActionTimeRef.current < ACTION_COOLDOWN) {
+      return;
+    }
+
+    if (sendReceiveGesture.current === "Send File" && !isQuestionWindowOpen) {
+      if (!uploadMutation.isPending) {
+        handleUpload();
+        lastActionTimeRef.current = now;
+      }
+    } else if (
+      sendReceiveGesture.current === "Receive File" &&
+      !isQuestionWindowOpen
+    ) {
+      if (!downloadMutation.isPending) {
+        handleDownload();
+        lastActionTimeRef.current = now;
       }
     }
-  };
+  }, [
+    sendReceiveGesture.current,
+    uploadMutation.isPending,
+    downloadMutation.isPending,
+  ]);
 
   return (
     <div

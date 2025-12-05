@@ -3,15 +3,26 @@ import { HandPrediction } from "./useHandPoseModel";
 
 export interface UseGestureOptions {
   gesturePair: "send-receive" | "yes-no" | "open-close";
+  enabled?: boolean;
 }
 
-export const useGesture = ({ gesturePair }: UseGestureOptions) => {
+export const useGesture = ({
+  gesturePair,
+  enabled = true,
+}: UseGestureOptions) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hands, setHands] = useState<HandPrediction[]>([]);
   const currentGesture = useRef<string | null>(null);
 
   useEffect(() => {
+    console.log(`useGesture: pair=${gesturePair}, enabled=${enabled}`);
+    if (!enabled) {
+      setHands([]);
+      currentGesture.current = null;
+      return;
+    }
+
     if (window.electronAPI?.setGestureConfig) {
       window.electronAPI.setGestureConfig({ gesturePair });
       setIsLoading(false);

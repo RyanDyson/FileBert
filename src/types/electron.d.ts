@@ -11,6 +11,7 @@ export interface ElectronAPI {
   openSettingsWindow: () => Promise<void>;
   openHistoryWindow: () => Promise<void>;
   openQuestionWindow: () => Promise<void>;
+  isQuestionWindowOpen: () => Promise<boolean>;
   setToastAction: (action: string | null, data?: unknown) => Promise<void>;
   getQuestions: () => Promise<{ id: number; text: string }[]>;
   updateQuestions: (questions: { id: number; text: string }[]) => Promise<void>;
@@ -32,6 +33,7 @@ export interface ElectronAPI {
   onGestureConfig: (
     callback: (config: { gesturePair: string }) => void
   ) => () => void;
+  onQuestionWindowStatus: (callback: (isOpen: boolean) => void) => () => void;
 }
 
 declare global {

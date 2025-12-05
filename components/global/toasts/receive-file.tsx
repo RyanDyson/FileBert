@@ -20,7 +20,7 @@ export const DownloadFileToast = ({
         <>
           <File className="w-8 h-8" />
           <span className="text-sm font-medium w-full text-center pb-1">
-            Host has uploaded {fileName}
+            Downloaded {fileName}
           </span>
         </>
       )}

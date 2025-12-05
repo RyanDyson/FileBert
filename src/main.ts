@@ -392,6 +392,15 @@ const setupIpcHandlers = () => {
       return;
     }
 
+    if (route === "/question") {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        console.log("Sending question-window-status: true");
+        mainWindow.webContents.send("question-window-status", true);
+      } else {
+        console.log("Main window not available or destroyed");
+      }
+    }
+
     const newWindow = new BrowserWindow({
       width: windowWidth,
       height: windowHeight,
@@ -435,6 +444,14 @@ const setupIpcHandlers = () => {
     // Clean up when window is closed
     newWindow.on("closed", () => {
       secondaryWindows.delete(route);
+      if (route === "/question") {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          console.log("Sending question-window-status: false");
+          mainWindow.webContents.send("question-window-status", false);
+        } else {
+          console.log("Main window not available or destroyed (closed event)");
+        }
+      }
     });
 
     secondaryWindows.set(route, newWindow);
@@ -458,6 +475,12 @@ const setupIpcHandlers = () => {
   // IPC handler to open question window
   ipcMain.handle("open-question-window", async () => {
     createSecondaryWindow("/question", "FileBert - Question");
+  });
+
+  // IPC handler to check if question window is open
+  ipcMain.handle("is-question-window-open", async () => {
+    const win = secondaryWindows.get("/question");
+    return !!(win && !win.isDestroyed());
   });
 
   ipcMain.handle(
