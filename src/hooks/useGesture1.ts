@@ -54,13 +54,13 @@ const useGesture = ({ cameraRef, gesturePair }: UseGestureOptions) => {
       const thumb = landmarks[4];
       const index = landmarks[8];
       const middle = landmarks[12];
-			const indexLeft = landmarks[12];
       const ring = landmarks[16];
       const pinky = landmarks[20];
       const thumbMCP = landmarks[2];
+      const middleMCP = landmarks[9];
 
       const palmSize = Math.sqrt(
-        Math.pow(middle[0] - wrist[0], 2) + Math.pow(middle[1] - wrist[1], 2)
+        Math.pow(middleMCP[0] - wrist[0], 2) + Math.pow(middleMCP[1] - wrist[1], 2) - 100 // Subtracting 100 to adjust sensitivity
       );
 
       if (palmSize < 0.05) {
@@ -74,16 +74,22 @@ const useGesture = ({ cameraRef, gesturePair }: UseGestureOptions) => {
             Math.pow(finger[1] - wrist[1], 2)
         )
       );
-			console.log(fingerDistances);
-			console.log("palmSize: " + palmSize);
+      const indexDistance = Math.sqrt(
+      Math.pow(index[0] - wrist[0], 2) +
+          Math.pow(index[1] - wrist[1], 2)
+      );  
+      
+			console.log("index distance:", indexDistance);
+			console.log("palmSize:", palmSize);
 
-      const fingersCurledConfidence =
-        fingerDistances.filter((dist) => dist > palmSize * 5).length / 4;
-      const fingersExpandedConfidence =
-        fingerDistances.filter((dist) => dist < palmSize * 5).length / 4;
+      const fistThreshold = palmSize * 1; // Adjusted threshold for better separation
 
-      const fingersCurled = fingersCurledConfidence > 0.7;
-      const fingersExpanded = fingersExpandedConfidence > 0.7;
+
+      const fingersCurled = fingerDistances.map(distance => distance < fistThreshold);
+      const fingersExpanded = fingerDistances.map(distance => distance > fistThreshold);
+      
+      const fingersCurledConfidence = fingersCurled.map((c: boolean) => c ? 1 : 0).reduce((a, b) => a + b, 0) / fingerDistances.length;
+      const fingersExpandedConfidence = fingersExpanded.map((c: boolean) => c ? 1 : 0).reduce((a, b) => a + b, 0) / fingerDistances.length;
 
       console.log("Fingers Curled Confidence:", fingersCurledConfidence);
       console.log("Fingers Expanded Confidence:", fingersExpandedConfidence);
@@ -105,8 +111,6 @@ const useGesture = ({ cameraRef, gesturePair }: UseGestureOptions) => {
         return;
       }
 
-      const isCloseGesture = Math.sqrt(Math.pow(index[0] - indexLeft[0], 2) + Math.pow(index[1] - indexLeft[1], 2)) < 0.05;
-
       // Gesture recognition with state tracking
       if (gesturePair === "send-receive") {
         if (fingersExpanded) {
@@ -124,10 +128,10 @@ const useGesture = ({ cameraRef, gesturePair }: UseGestureOptions) => {
         }
       } else if (gesturePair === "open-close") {
         console.log("fingerExpanded: " + fingersExpanded);
-        if (fingersExpanded) {
+        if (fingersExpandedConfidence > 0.75) {
           currentGesture.current = "Open Room";
-        } else if (isCloseGesture) {
-          currentGesture.current = "Close Room";
+        } else if (fingersCurledConfidence > 0.75) {
+          currentGesture.current = null;
         } else {
           currentGesture.current = null;
         }
@@ -151,18 +155,34 @@ const useGesture = ({ cameraRef, gesturePair }: UseGestureOptions) => {
               cameraRef.current
             );
 
+            // Update hands state first
+            const newHands = predictions.map((prediction) => ({
+              landmarks: prediction.landmarks,
+            }));
+            setHands(newHands);
+
             if (predictions.length > 0) {
               const { landmarks } = predictions[0];
               detectGesture(landmarks);
 
-              setHands(
-                predictions.map((prediction) => ({
-                  landmarks: prediction.landmarks,
-                }))
-              );
+              // Check for close gesture (two hands with index fingers close)
+              if (predictions.length > 1 && gesturePair === "open-close") {
+                console.log("2 hadn detected")
+                const index1 = predictions[0].landmarks[8];
+                const index2 = predictions[1].landmarks[8];
+                const distance = Math.sqrt(
+                  Math.pow(index1[0] - index2[0], 2) + 
+                  Math.pow(index1[1] - index2[1], 2)
+                );
+                
+                if (distance < 0.05) {
+                  currentGesture.current = "Close Room";
+                }
+              }
+
+              console.log("Current Gesture: " + currentGesture.current);
             } else {
               currentGesture.current = null;
-              setHands([]);
             }
           }
         };

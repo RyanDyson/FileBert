@@ -57,7 +57,7 @@ export const Start = () => {
     cameraRef: {
       current: webcamRef.current?.video || null,
     },
-    gesturePair: "open-close"
+    gesturePair: "open-close",
   });
 
   const createRoomForm = useForm<CreateRoomForm>({
