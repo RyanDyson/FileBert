@@ -104,17 +104,28 @@ const useGesture = ({ cameraRef, gesturePair }: UseGestureOptions) => {
       const isThumbDown =
         fingersCurled && thumb[1] > thumbMCP[1];
 
-      // Clear previous states if hand detection is unstable
+      //open: index + thumb ,close: thumb touch pinkiy
+      // open
+      const dist_thumb_index = Math.sqrt(
+        Math.pow(thumb[0] - index[0], 2) +
+        Math.pow(thumb[1] - index[1], 2))
+
+      const dist_thumb_pinky = Math.sqrt(
+        Math.pow(thumb[0] - pinky[0], 2) +
+        Math.pow(thumb[1] - pinky[1], 2))
+
+
       if (!wasHandAbsent.current && !fingersExpanded) {
-        // Hand is in an ambiguous state
         currentGesture.current = null;
         return;
       }
 
       // Gesture recognition with state tracking
       if (gesturePair === "send-receive") {
-        if (fingersExpanded) {
-          currentGesture.current = "Receive File";
+        if (fingersExpandedConfidence > 0.75) {
+          currentGesture.current = "Send Receive";
+        } else if (fingersCurledConfidence > 0.75) {
+          currentGesture.current = "Send File";
         } else {
           currentGesture.current = null;
         }
@@ -127,14 +138,12 @@ const useGesture = ({ cameraRef, gesturePair }: UseGestureOptions) => {
           currentGesture.current = null;
         }
       } else if (gesturePair === "open-close") {
-        console.log("fingerExpanded: " + fingersExpanded);
-        if (fingersExpandedConfidence > 0.75) {
-          currentGesture.current = "Open Room";
-        } else if (fingersCurledConfidence > 0.75) {
-          currentGesture.current = null;
-        } else {
-          currentGesture.current = null;
-        }
+          if (dist_thumb_index < 10){
+            currentGesture.current = "Open Room";
+          }
+          if (dist_thumb_pinky < 10){
+            currentGesture.current = "Close Room";
+          }
       }
 
       console.log(currentGesture.current);
