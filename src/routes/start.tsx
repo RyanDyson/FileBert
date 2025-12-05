@@ -53,12 +53,12 @@ export const Start = () => {
   const [joinRoomCode, setJoinRoomCode] = useState("");
   const [loading, setLoading] = useState(false);
   const webcamRef = useRef(null);
-  const { isLoading, error, currentGesture } = useGesture1({
-    cameraRef: {
-      current: webcamRef.current?.video || null,
-    },
-    gesturePair: "open-close",
-  });
+  // const { isLoading, error, currentGesture } = useGesture1({
+  //   cameraRef: {
+  //     current: webcamRef.current?.video || null,
+  //   },
+  //   gesturePair: "open-close",
+  // });
 
   const createRoomForm = useForm<CreateRoomForm>({
     resolver: zodResolver(createRoomSchema),
@@ -281,7 +281,8 @@ export const Start = () => {
           </div>
         </form>
 
-        <Webcam hidden={false} ref={webcamRef} />
+        <Webcam hidden={true} ref={webcamRef} />
+        {/* <p>{currentGesture.current}</p> */}
       </div>
     </WindowWrapper>
   );

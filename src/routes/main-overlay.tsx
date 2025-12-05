@@ -39,23 +39,26 @@ export const MainOverlay = ({
   useEffect(() => {
     const fetchOverlayData = async () => {
       try {
-        const overlayData = await window.electronAPI.getOverlayData();
-        setRoomCode((prev) => {
-          console.log("Previous roomCode:", prev, "New roomCode:", overlayData.roomId);
-          return overlayData.roomId;
-        });
+        const data = await window.electronAPI.getOverlayData();
+        
+        if (data) {
+          setRoomCode((prev) => {
+            console.log("Previous roomCode:", prev, "New roomCode:", data.roomId);
+            return data.roomId;
+          });
 
-        setIsHost((prev) => {
-          const newIsHost = overlayData.current_roles === "H";
-          console.log("Previous isHost:", prev, "New isHost:", newIsHost);
-          return newIsHost;
-        });
+          setIsHost((prev) => {
+            const newIsHost = data.current_roles === "H";
+            console.log("Previous isHost:", prev, "New isHost:", newIsHost);
+            return newIsHost;
+          });
 
-        setNickname((prev) => {
-          const newUsername = overlayData.username;
-          console.log("Previous username:", prev, "New username:", newUsername);
-          return newUsername;
-        });
+          setNickname((prev) => {
+            const newUsername = data.username;
+            console.log("Previous username:", prev, "New username:", newUsername);
+            return newUsername;
+          });
+        }
       } catch (error) {
         console.error("Failed to fetch overlay data:", error);
       }
@@ -230,7 +233,7 @@ export const MainOverlay = ({
       let filename = `download_${roomCode}`;
       const match = /filename\*?=([^;]+)/i.exec(disposition);
       if (match) {
-        filename = match[1].replace(/(^\"|\"$)/g, "");
+        filename = match[1].replace(/(^"|"$)/g, "");
       }
 
       const url = URL.createObjectURL(blob);
