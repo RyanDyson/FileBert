@@ -513,6 +513,10 @@ app.on("window-all-closed", () => {
   }
 });
 
+// Fix for "Invalid mailbox" and "SharedImageManager" errors with transparent windows
+app.commandLine.appendSwitch("disable-features", "WidgetLayering");
+app.commandLine.appendSwitch("enable-transparent-visuals");
+
 app.on("activate", () => {
   // On OS X it's common to re-create a window in the app when the
   // dock icon is clicked and there are no other windows open.

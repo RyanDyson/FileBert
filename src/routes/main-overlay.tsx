@@ -2,18 +2,27 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Field, FieldLabel, FieldContent } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Pencil, History, Users, Settings, Save, LogOut } from "lucide-react";
+import {
+  Pencil,
+  History,
+  Users,
+  Settings,
+  Save,
+  LogOut,
+  Hand,
+} from "lucide-react";
 import { cn } from "../lib/utils";
 import { useNavigate } from "react-router-dom";
 import { ConfirmDialog } from "../../components/global/confirm-dialog";
 import { CopyButton } from "../../components/global/copy-button";
 import { Actions, Toast } from "@/components/global/toast-config";
 import type { Dispatch, SetStateAction } from "react";
+import { useGesture } from "../lib/gesture/useGesture";
 
 const EXPANDED_WIDTH = 650;
-const EXPANDED_HEIGHT = 120;
+const EXPANDED_HEIGHT = 200;
 const MINIMIZED_WIDTH = 600;
-const MINIMIZED_HEIGHT = 50;
+const MINIMIZED_HEIGHT = 90;
 const INACTIVITY_TIMEOUT = 3000;
 
 export const MainOverlay = ({
@@ -35,6 +44,32 @@ export const MainOverlay = ({
   const [message, setMessage] = useState<string>("");
   const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const { currentGesture: closeGesture } = useGesture({
+    gesturePair: "open-close",
+  });
+
+  const { currentGesture: sendReceiveGesture } = useGesture({
+    gesturePair: "send-receive",
+  });
+
+  const [displayGesture, setDisplayGesture] = useState<string | null>(null);
+
+  useEffect(() => {
+    const gesture = closeGesture.current || sendReceiveGesture.current;
+    if (gesture) {
+      if (closeGesture.current === "Close Room") {
+        setDisplayGesture("Close Room");
+      } else {
+        setDisplayGesture(gesture);
+      }
+    } else {
+      const timer = setTimeout(() => {
+        setDisplayGesture(null);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [closeGesture.current, sendReceiveGesture.current]);
 
   useEffect(() => {
     const fetchOverlayData = async () => {
@@ -303,20 +338,22 @@ export const MainOverlay = ({
     <div
       ref={containerRef}
       className={cn(
-        "overflow-clip w-full h-full bg-card/90 border-b border-border/50 shadow-lg transition-all duration-300 ease-in-out p-0",
+        "overflow-clip w-full h-full bg-card/90 border-b border-border/50 shadow-lg transition-all duration-300 ease-in-out p-0 flex flex-col",
         !isExpanded && "opacity-30"
       )}
     >
       {action && (
-        <Toast
-          action={action}
-          props={{
-            isLoading: false,
-            fileName: "",
-            code: roomCode,
-            ...toastProps,
-          }}
-        />
+        <div className="absolute top-0 left-0 right-0 z-50">
+          <Toast
+            action={action}
+            props={{
+              isLoading: false,
+              fileName: "",
+              code: roomCode,
+              ...toastProps,
+            }}
+          />
+        </div>
       )}
       {showConfirm && isExpanded && (
         <ConfirmDialog
@@ -331,7 +368,7 @@ export const MainOverlay = ({
       )}
       <div
         className={cn(
-          "flex items-center w-full h-full transition-all duration-300 ease-in-out opacity-100 divide-x divide-border",
+          "flex-1 flex items-center w-full transition-all duration-300 ease-in-out opacity-100 divide-x divide-border",
           isExpanded && "max-h-full"
         )}
       >
@@ -424,7 +461,7 @@ export const MainOverlay = ({
         </div>
 
         {/* Right Section - Navigation */}
-        <div className={cn("flex items-center gap-4 px-4 h-32")}>
+        <div className={cn("flex items-center gap-4 px-4 h-full")}>
           <Button
             variant="ghost"
             className="text-foreground hover:bg-accent h-full flex flex-col items-center justify-center"
@@ -440,7 +477,7 @@ export const MainOverlay = ({
           </Button>
           <Button
             variant="ghost"
-            className="text-foreground hover:bg-accent flex h-full flex-col items-center justify-center py-4 px-2"
+            className="text-foreground hover:bg-accent flex h-16 flex-col items-center justify-center py-4 px-2"
             title="Members"
             onClick={() => {
               if (window.electronAPI?.openMembersWindow) {
@@ -454,7 +491,7 @@ export const MainOverlay = ({
           {isHost && (
             <Button
               variant="ghost"
-              className="text-foreground flex h-full flex-col items-center justify-center hover:bg-accent"
+              className="text-foreground flex h-16 flex-col items-center justify-center hover:bg-accent"
               title="Settings"
               onClick={() => {
                 if (window.electronAPI?.openSettingsWindow) {
@@ -468,7 +505,7 @@ export const MainOverlay = ({
           )}
           <Button
             variant="ghost"
-            className="text-foreground flex h-full flex-col items-center justify-center hover:bg-accent"
+            className="text-foreground flex h-16 flex-col items-center justify-center hover:bg-accent"
             title="Leave"
             onClick={() => setShowConfirm(true)}
           >
@@ -476,6 +513,22 @@ export const MainOverlay = ({
             {isExpanded && <span className="text-xs">Leave</span>}
           </Button>
         </div>
+      </div>
+
+      <div className="h-8 bg-muted/30 border-t border-border/50 flex items-center justify-center gap-2 text-xs font-medium text-muted-foreground shrink-0">
+        <Hand
+          className={cn(
+            "w-3 h-3",
+            displayGesture && "text-primary animate-pulse"
+          )}
+        />
+        {displayGesture ? (
+          <span className="text-primary animate-in fade-in slide-in-from-bottom-1">
+            Gesture Detected: {displayGesture}
+          </span>
+        ) : (
+          <span className="opacity-50">Waiting for gesture...</span>
+        )}
       </div>
     </div>
   );

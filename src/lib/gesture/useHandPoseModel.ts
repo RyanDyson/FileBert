@@ -133,9 +133,9 @@ export const useHandPoseModel = ({
       // Gesture recognition with state tracking
       if (gesturePair === "send-receive") {
         if (fingersExpandedConfidence > 0.75) {
-          currentGesture.current = "Send Receive";
-        } else if (fingersCurledConfidence > 0.75) {
           currentGesture.current = "Send File";
+        } else if (fingersCurledConfidence > 0.75) {
+          currentGesture.current = "Receive File";
         } else {
           currentGesture.current = null;
         }

@@ -14,6 +14,8 @@ const config: ForgeConfig = {
       NSCameraUseContinuityCameraDeviceType: true,
       NSCameraUsageDescription:
         "This application requires access to your camera for gesture control.",
+      NSMicrophoneUsageDescription:
+        "This application requires access to your microphone for audio input.",
     },
   },
   rebuildConfig: {},
