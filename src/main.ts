@@ -46,8 +46,6 @@ const createGestureWorkerWindow = () => {
     const fileUrl = pathToFileURL(filePath).href + "#/gesture-worker";
     gestureWorkerWindow.loadURL(fileUrl);
   }
-
-  // gestureWorkerWindow.webContents.openDevTools({ mode: "detach" }); // For debugging
 };
 
 const createWindow = (isOverlay = false) => {
@@ -87,7 +85,6 @@ const createWindow = (isOverlay = false) => {
     });
 
     mainWindow.setTitle("FileBert");
-    mainWindow.webContents.openDevTools();
 
     if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
       mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL + "/overlay");
@@ -130,7 +127,6 @@ const createWindow = (isOverlay = false) => {
     });
 
     Menu.setApplicationMenu(null);
-    mainWindow.webContents.openDevTools();
 
     if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
       mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
@@ -424,10 +420,6 @@ const setupIpcHandlers = () => {
     });
 
     newWindow.setTitle(title);
-
-    newWindow.once("ready-to-show", () => {
-      newWindow.webContents.openDevTools();
-    });
 
     // Load the URL
     if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
