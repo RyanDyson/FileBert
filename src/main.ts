@@ -3,8 +3,17 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import started from "electron-squirrel-startup";
 
+// const ffi = require('ffi-napi');
+// const ref = require('ref-napi');
+// const StructType = require('ref-struct-di')(ref);
+// const ArrayType = require('ref-array-di')(ref);
+
 let mainWindow: BrowserWindow | null = null;
 const secondaryWindows = new Map<string, BrowserWindow>();
+
+let roomId: string | null = null;
+let current_roles: string | null = null;
+let username: string | null = null;
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -42,10 +51,13 @@ const createWindow = (isOverlay = false) => {
       webPreferences: {
         preload: path.join(__dirname, "preload.js"),
         backgroundThrottling: false,
+        webSecurity: false,
+        nodeIntegration: true,
       },
     });
 
     mainWindow.setTitle("FileBert");
+    mainWindow.webContents.openDevTools();
 
     if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
       mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL + "/overlay");
@@ -82,13 +94,13 @@ const createWindow = (isOverlay = false) => {
       webPreferences: {
         preload: path.join(__dirname, "preload.js"),
         backgroundThrottling: false,
+        webSecurity: false,
+        nodeIntegration: true,
       },
     });
 
-    // Set window title explicitly
-    mainWindow.setTitle("FileBert");
-
     Menu.setApplicationMenu(null);
+    mainWindow.webContents.openDevTools();
 
     if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
       mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
@@ -190,63 +202,73 @@ const setupIpcHandlers = () => {
   });
 
   // IPC handler to switch to overlay mode
-  ipcMain.handle("switch-to-overlay", async () => {
-    if (mainWindow) {
-      const primaryDisplay = screen.getPrimaryDisplay();
-      const { width: screenWidth } = primaryDisplay.workAreaSize;
+  ipcMain.handle(
+    "switch-to-overlay",
+    async (_, newRoomId, newCurrentRoles, newUsername) => {
+      if (mainWindow) {
+        const primaryDisplay = screen.getPrimaryDisplay();
+        const { width: screenWidth } = primaryDisplay.workAreaSize;
 
-      // Start at expanded size since toast will be shown initially
-      const overlayWidth = 650;
-      const overlayHeight = 120;
-      const x = Math.floor((screenWidth - overlayWidth) / 2);
-      const y = 0;
+        // Start at expanded size since toast will be shown initially
+        const overlayWidth = 650;
+        const overlayHeight = 120;
+        const x = Math.floor((screenWidth - overlayWidth) / 2);
+        const y = 0;
 
-      // Store current window state
-      const wasVisible = mainWindow.isVisible();
+        // Store current window state
+        const wasVisible = mainWindow.isVisible();
 
-      // Close the current window
-      mainWindow.close();
+        // Close the current window
+        mainWindow.close();
 
-      // Create new frameless overlay window
-      mainWindow = new BrowserWindow({
-        width: overlayWidth,
-        height: overlayHeight,
-        frame: false, // No title bar
-        transparent: true,
-        backgroundColor: "#00000000",
-        alwaysOnTop: true,
-        skipTaskbar: false,
-        resizable: true,
-        hasShadow: true,
-        vibrancy: process.platform === "darwin" ? "under-window" : undefined,
-        visualEffectState: process.platform === "darwin" ? "active" : undefined,
-        x: x,
-        y: y,
-        webPreferences: {
-          preload: path.join(__dirname, "preload.js"),
-          backgroundThrottling: false,
-        },
-      });
+        // Create new frameless overlay window
+        mainWindow = new BrowserWindow({
+          width: overlayWidth,
+          height: overlayHeight,
+          frame: false, // No title bar
+          transparent: true,
+          backgroundColor: "#00000000",
+          alwaysOnTop: true,
+          skipTaskbar: false,
+          resizable: true,
+          hasShadow: true,
+          vibrancy: process.platform === "darwin" ? "under-window" : undefined,
+          visualEffectState:
+            process.platform === "darwin" ? "active" : undefined,
+          x: x,
+          y: y,
+          webPreferences: {
+            preload: path.join(__dirname, "preload.js"),
+            backgroundThrottling: false,
+            webSecurity: false,
+            nodeIntegration: true,
+          },
+        });
 
-      mainWindow.setTitle("FileBert");
+        mainWindow.setTitle("FileBert");
 
-      // Load the URL
-      if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
-        mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL + "/overlay");
-      } else {
-        const filePath = path.join(
-          __dirname,
-          `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`
-        );
-        const fileUrl = pathToFileURL(filePath).href + "#/overlay";
-        mainWindow.loadURL(fileUrl);
-      }
+        // Load the URL
+        if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
+          mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL + "/overlay");
+        } else {
+          const filePath = path.join(
+            __dirname,
+            `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`
+          );
+          const fileUrl = pathToFileURL(filePath).href + "#/overlay";
+          mainWindow.loadURL(fileUrl);
+        }
 
-      if (wasVisible) {
-        mainWindow.show();
+        if (wasVisible) {
+          mainWindow.show();
+        }
+
+        roomId = newRoomId;
+        current_roles = newCurrentRoles;
+        username = newUsername;
       }
     }
-  });
+  );
 
   // IPC handler to switch back to start screen (normal window)
   ipcMain.handle("switch-to-start-screen", async () => {
@@ -259,6 +281,10 @@ const setupIpcHandlers = () => {
     secondaryWindows.clear();
 
     if (mainWindow) {
+      roomId = null;
+      current_roles = null;
+      username = null;
+
       const primaryDisplay = screen.getPrimaryDisplay();
       const { width: screenWidth, height: screenHeight } =
         primaryDisplay.workAreaSize;
@@ -293,6 +319,8 @@ const setupIpcHandlers = () => {
         webPreferences: {
           preload: path.join(__dirname, "preload.js"),
           backgroundThrottling: false,
+          webSecurity: false,
+          nodeIntegration: true,
         },
       });
 
@@ -351,10 +379,16 @@ const setupIpcHandlers = () => {
       webPreferences: {
         preload: path.join(__dirname, "preload.js"),
         backgroundThrottling: false,
+        webSecurity: false,
+        nodeIntegration: true,
       },
     });
 
     newWindow.setTitle(title);
+
+    newWindow.once("ready-to-show", () => {
+      newWindow.webContents.openDevTools();
+    });
 
     // Load the URL
     if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
@@ -405,6 +439,9 @@ const setupIpcHandlers = () => {
       }
     }
   );
+  ipcMain.handle("get-overlay-data", async () => {
+    return { roomId, current_roles, username };
+  });
 };
 
 // Setup IPC handlers before creating window

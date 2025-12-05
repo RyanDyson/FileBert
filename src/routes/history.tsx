@@ -1,32 +1,63 @@
 import { WindowWrapper } from "@/components/global/window-wrapper";
 import { File, Search } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
-interface File {
-  name: string;
-  ext: string;
-  size: string;
-  updatedBy: string;
-  updatedAt: string;
+interface FileObject{
+	originalFileName: string;
+	username: string;
+	lastModified: string;
 }
 
 export const History = () => {
-  const [searchTerm, setSearchTerm] = useState(''); // State for search term
+  const [searchTerm, setSearchTerm] = useState('');
+  const [roomCode, setRoomCode] = useState('');
+  const [fileHistory, setFileHistory] = useState<FileObject[]>([]);
+  
 
-  const data = [
-    { name: "ProjectPlan_V2.docx", ext: "docx", size: "1.2 MB", updatedBy: "Sarah", updatedAt: "2025-10-30 14:23 HKT" },
-    { name: "ClientBrief_Q4.pdf", ext: "pdf", size: "850 KB", updatedBy: "Sarah", updatedAt: "2025-10-30 14:23 HKT" },
-    { name: "ProductMockup_final.psd", ext: "psd", size: "45.6 MB", updatedBy: "Sarah", updatedAt: "2025-10-30 14:23 HKT" },
-    { name: "SalesReport_Oct.xlsx", ext: "xlsx", size: "3.1 MB", updatedBy: "Sarah", updatedAt: "2025-10-30 14:23 HKT" },
-    { name: "TEAMMEETINGNOTES.TXT", ext: "TXT", size: "15 KB", updatedBy: "Sarah", updatedAt: "2025-10-30 14:23 HKT" }
-  ];
+  useEffect(() => {
+    const fetchOverlayData = async () => {
+      try {
+        const overlayData = await window.electronAPI.getOverlayData();
+        setRoomCode((prev) => {
+          console.log("Previous roomCode:", prev, "New roomCode:", overlayData.roomId);
+          return overlayData.roomId;
+        });
+      } catch (error) {
+        console.error("Failed to fetch overlay data:", error);
+      }
+    };
 
-  // Filter data based on search term
-  const filteredData = data.filter(item => 
-    item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.ext.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.updatedBy.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.updatedAt.toLowerCase().includes(searchTerm.toLowerCase())
+    fetchOverlayData();
+  }, []);
+
+  useEffect(() => {
+    const fetchHistory = async () => {
+      try {
+        const response = await fetch(`https://filebertbackend.netlify.app/api/history?roomId=${encodeURIComponent(roomCode)}`);
+        const responseData = await response.json();
+        const history: FileObject[] = responseData.history;
+
+        if (history) {
+          setFileHistory(history); // Automatically update the state with the fetched data
+          console.log("Successfully fetched file history:", history);
+        } else {
+          console.error("Failed to fetch file history.");
+        }
+      } catch (error) {
+        console.error("Error fetching file history:", error);
+      }
+    };
+
+    if (roomCode) {
+      fetchHistory();
+    }
+  }, [roomCode]);
+
+  // Filter fileHistory based on search term
+  const filteredData = fileHistory.filter(item => 
+    item.originalFileName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.lastModified.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -55,53 +86,41 @@ export const History = () => {
           <table className="w-full border-collapse">
             <thead>
               <tr className="bg-[#202532] border-b border-[#b3b8be]">
-                <th className="px-1 py-3 text-left text-xs font-medium text-[#b3b8be] uppercase tracking-wider border-r border-[#b3b8be]">
-                  
-                </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-[#b3b8be] uppercase tracking-wider border-r border-[#b3b8be]">
                   File Name
                 </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-[#b3b8be] uppercase tracking-wider border-r border-[#b3b8be]">
+                  Extension
+                </th>
                 <th className="px-6- py-3 text-left text-xs font-medium text-[#b3b8be] uppercase tracking-wider border-r border-[#b3b8be]">
-                  File Extension
+                  Username
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-[#b3b8be] uppercase tracking-wider border-r border-[#b3b8be]">
-                  Size
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-[#b3b8be] uppercase tracking-wider border-r border-[#b3b8be]">
-                  Updated By
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-[#b3b8be] uppercase tracking-wider">
-                  Updated At
+                  Last Modified
                 </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#b3b8be]">
               {filteredData.length > 0 ? (
                 filteredData.map((item) => (
-                  <tr key={item.name} className="hover:bg-gray-50">
-                    <td className="p-2 border-r border-[#b3b8be] text-center">
-                      <input type="checkbox" className="ml-2 text-[#b3b8be]" />
+                  <tr key={item.originalFileName} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-r border-[#b3b8be]">
+                      {item.originalFileName}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-r border-[#b3b8be]">
-                      {item.name}
+                      {item.originalFileName.split(".")[1]}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-r border-[#b3b8be]">
-                      {item.ext}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-r border-[#b3b8be]">
-                      {item.size}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-r border-[#b3b8be]">
-                      {item.updatedBy}
+                      {item.username}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {item.updatedAt}
+                      {item.lastModified}
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500">
+                  <td colSpan={4} className="px-6 py-4 text-center text-sm text-gray-500">
                     No files found matching your search.
                   </td>
                 </tr>
