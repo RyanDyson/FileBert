@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Pencil, History, Users, Settings, Save, LogOut } from "lucide-react";
 import { cn } from "../lib/utils";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { ConfirmDialog } from "../../components/global/confirm-dialog";
 import { CopyButton } from "../../components/global/copy-button";
 import { Actions, Toast } from "@/components/global/toast-config";
@@ -26,13 +26,46 @@ export const MainOverlay = ({
   const navigate = useNavigate();
   const [isExpanded, setIsExpanded] = useState(true); // Start expanded since we show toast initially
   const [editRoomName, setEditRoomName] = useState(false);
-  const [roomCode, setRoomCode] = useState("123456");
+  const [roomCode, setRoomCode] = useState("123");
   const [roomName, setRoomName] = useState("Lecture - Example Topic...");
-  const [isHost, setIsHost] = useState(true);
+  const [nickname, setNickname] = useState("Nick name");
+  const [isHost, setIsHost] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
+  const [message, setMessage] = useState<string>("");
   const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const isInitialMount = useRef(true);
+  useEffect(() => {
+    const fetchOverlayData = async () => {
+      try {
+        const data = await window.electronAPI.getOverlayData();
+        
+        if (data) {
+          setRoomCode((prev) => {
+            console.log("Previous roomCode:", prev, "New roomCode:", data.roomId);
+            return data.roomId;
+          });
+
+          setIsHost((prev) => {
+            const newIsHost = data.current_roles === "H";
+            console.log("Previous isHost:", prev, "New isHost:", newIsHost);
+            return newIsHost;
+          });
+
+          setNickname((prev) => {
+            const newUsername = data.username;
+            console.log("Previous username:", prev, "New username:", newUsername);
+            return newUsername;
+          });
+        }
+      } catch (error) {
+        console.error("Failed to fetch overlay data:", error);
+      }
+    };
+
+    fetchOverlayData();
+  }, []);
+    
   const expandWindow = useCallback(() => {
     if (!isExpanded) {
       setIsExpanded(true);
@@ -127,13 +160,99 @@ export const MainOverlay = ({
   }, [isExpanded, expandWindow, resetInactivityTimer]);
 
   const handleLeave = async () => {
-    // API call would go here
-    // Switch window back to normal mode and navigate to start screen
-    if (window.electronAPI?.switchToStartScreen) {
-      await window.electronAPI.switchToStartScreen();
+    let current_roles = 'M';
+    if (isHost){
+      current_roles = 'H'
     }
-    navigate("/");
-    setShowConfirm(false);
+
+    try {
+      const response = await fetch("https://filebertbackend.netlify.app/api/leave", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ roomId: roomCode, username: nickname, current_roles: current_roles }),
+      });
+
+      const responseData = await response.json();
+      const success = responseData.success;
+
+      if(success){
+        if (window.electronAPI?.switchToStartScreen) {
+          await window.electronAPI.switchToStartScreen();
+        }
+        navigate("/");
+        setShowConfirm(false);
+      }
+      setShowConfirm(false);
+    } catch(error) {
+      console.error("Failed to leave room:", error);
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!file) {
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("username", nickname);
+    formData.append("roomId", roomCode);
+
+    try {
+      const response = await fetch("/api/sending", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        setMessage("File uploaded successfully.");
+      } else {
+        setMessage(`Error: ${data.error}`);
+      }
+    } catch (error) {
+      if (error instanceof Error) {
+        setMessage(`Error: ${error.message}`);
+      } else {
+        setMessage("An unknown error occurred during file upload.");
+      }
+    }
+  };
+
+  const handleDownload = async () => {
+    try {
+      const res = await fetch(`/api/receive?roomId=${encodeURIComponent(roomCode)}`);
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || res.statusText);
+      }
+
+      const blob = await res.blob();
+      const disposition = res.headers.get("content-disposition") || "";
+      let filename = `download_${roomCode}`;
+      const match = /filename\*?=([^;]+)/i.exec(disposition);
+      if (match) {
+        filename = match[1].replace(/(^"|"$)/g, "");
+      }
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      setMessage("File downloaded successfully.");
+    } catch (error) {
+      if (error instanceof Error) {
+        setMessage(`Download error: ${error.message}`);
+      } else {
+        setMessage("An unknown error occurred during download.");
+      }
+    }
   };
 
   return (

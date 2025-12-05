@@ -5,10 +5,15 @@ import { Separator } from "@/components/ui/separator";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod/v3";
-import { useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { NicknamePopup } from "@/components/global/nickname-popup";
 import { Loader2 } from "lucide-react";
 import { WindowWrapper } from "@/components/global/window-wrapper";
+import { useQuery } from "@tanstack/react-query";
+import Webcam from "react-webcam";
+import { useGesture } from "../lib/gesture/useGesture";
+import { GestureType } from "../lib/gesture/useGesture";
+import useGesture1 from "../hooks/useGesture1";
 
 const formatZodError = (error: unknown): string => {
   if (typeof error === "string") return error;
@@ -45,6 +50,13 @@ export const Start = () => {
   const [showNicknamePopup, setShowNicknamePopup] = useState(false);
   const [joinRoomCode, setJoinRoomCode] = useState("");
   const [loading, setLoading] = useState(false);
+  const webcamRef = useRef(null);
+  // const { isLoading, error, currentGesture } = useGesture1({
+  //   cameraRef: {
+  //     current: webcamRef.current?.video || null,
+  //   },
+  //   gesturePair: "open-close",
+  // });
 
   const createRoomForm = useForm<CreateRoomForm>({
     resolver: zodResolver(createRoomSchema),
@@ -61,16 +73,33 @@ export const Start = () => {
     },
   });
 
-  const onCreateRoomSubmit = async (data: CreateRoomForm) => {
+  const onCreateRoomSubmit = async (dataForm: CreateRoomForm) => {
     setLoading(true);
     try {
-      // API call would go here
-      // await createRoom({ roomName: data.roomName, nickname: data.nickname });
+      const response = await fetch("https://filebertbackend.netlify.app/api/createRoom", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username: dataForm.nickname }),
+      });
+
+      const responseData = await response.json();
+      const roomId = responseData.roomId;
+      const current_roles = responseData.current_roles;
+      const username = dataForm.nickname
+
+      if (!response.ok) {
+        throw new Error("Failed to create room");
+      }
+
       setTimeout(async () => {
         setLoading(false);
         if (window.electronAPI?.switchToOverlay) {
-          await window.electronAPI.switchToOverlay();
+          console.log("Nickname received in main process:", username);
+          await window.electronAPI.switchToOverlay(roomId, current_roles, username);
         }
+        navigate(`/overlay`);
       }, 1000);
     } catch (error) {
       console.error("Failed to create room:", error);
@@ -81,8 +110,7 @@ export const Start = () => {
   const onJoinRoomSubmit = async (data: JoinRoomForm) => {
     setLoading(true);
     try {
-      // API call would go here
-      // const result = await joinRoom({ roomCode: data.roomCode });
+      //call in set nickname
 
       // Simulate successful join - show nickname popup
       setTimeout(async () => {
@@ -98,12 +126,26 @@ export const Start = () => {
 
   const handleNicknameSubmit = async (nickname: string) => {
     try {
-      // API call would go here with nickname
-      // await submitNickname({ roomCode: joinRoomCode, nickname });
+      const response = await fetch("https://filebertbackend.netlify.app/api/join", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ roomId: joinRoomCode, username: nickname }),
+      });
+
+      const responseData = await response.json();
+      const roomId = responseData.roomId;
+      const current_roles = responseData.current_roles;
+      const username = nickname;
+
+      if (!response.ok) {
+        throw new Error("Failed to create room");
+      }
 
       setShowNicknamePopup(false);
       if (window.electronAPI?.switchToOverlay) {
-        await window.electronAPI.switchToOverlay();
+        await window.electronAPI.switchToOverlay(roomId, current_roles, username);
       }
     } catch (error) {
       console.error("Failed to submit nickname:", error);
@@ -235,6 +277,9 @@ export const Start = () => {
             ))}
           </div>
         </form>
+
+        <Webcam hidden={true} ref={webcamRef} />
+        {/* <p>{currentGesture.current}</p> */}
       </div>
     </WindowWrapper>
   );

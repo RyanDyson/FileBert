@@ -3,8 +3,18 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import started from "electron-squirrel-startup";
 
+// const ffi = require('ffi-napi');
+// const ref = require('ref-napi');
+// const StructType = require('ref-struct-di')(ref);
+// const ArrayType = require('ref-array-di')(ref);
+
+
 let mainWindow: BrowserWindow | null = null;
 const secondaryWindows = new Map<string, BrowserWindow>();
+
+let roomId: string | null = null;
+let current_roles: string | null = null;
+let username: string | null = null;
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -42,10 +52,13 @@ const createWindow = (isOverlay = false) => {
       webPreferences: {
         preload: path.join(__dirname, "preload.js"),
         backgroundThrottling: false,
+        webSecurity: false,
+        nodeIntegration: true,
       },
     });
 
     mainWindow.setTitle("FileBert");
+    mainWindow.webContents.openDevTools();
 
     if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
       mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL + "/overlay");
@@ -82,13 +95,13 @@ const createWindow = (isOverlay = false) => {
       webPreferences: {
         preload: path.join(__dirname, "preload.js"),
         backgroundThrottling: false,
+        webSecurity: false,
+        nodeIntegration: true,
       },
     });
 
-    // Set window title explicitly
-    mainWindow.setTitle("FileBert");
-
     Menu.setApplicationMenu(null);
+    mainWindow.webContents.openDevTools();
 
     if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
       mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
@@ -159,7 +172,7 @@ const setupIpcHandlers = () => {
   });
 
   // IPC handler to switch to overlay mode
-  ipcMain.handle("switch-to-overlay", async () => {
+  ipcMain.handle("switch-to-overlay", async (_, newRoomId, newCurrentRoles, newUsername) => {
     if (mainWindow) {
       const primaryDisplay = screen.getPrimaryDisplay();
       const { width: screenWidth } = primaryDisplay.workAreaSize;
@@ -194,6 +207,8 @@ const setupIpcHandlers = () => {
         webPreferences: {
           preload: path.join(__dirname, "preload.js"),
           backgroundThrottling: false,
+          webSecurity: false,
+          nodeIntegration: true,
         },
       });
 
@@ -214,12 +229,20 @@ const setupIpcHandlers = () => {
       if (wasVisible) {
         mainWindow.show();
       }
+
+      roomId = newRoomId;
+      current_roles = newCurrentRoles;
+      username = newUsername;
     }
   });
 
   // IPC handler to switch back to start screen (normal window)
   ipcMain.handle("switch-to-start-screen", async () => {
     if (mainWindow) {
+      roomId = null;
+      current_roles = null;
+      username = null;
+
       const primaryDisplay = screen.getPrimaryDisplay();
       const { width: screenWidth, height: screenHeight } =
         primaryDisplay.workAreaSize;
@@ -254,6 +277,8 @@ const setupIpcHandlers = () => {
         webPreferences: {
           preload: path.join(__dirname, "preload.js"),
           backgroundThrottling: false,
+          webSecurity: false,
+          nodeIntegration: true,
         },
       });
 
@@ -273,7 +298,7 @@ const setupIpcHandlers = () => {
 
       if (wasVisible) {
         mainWindow.show();
-      }
+      } 
     }
   });
 
@@ -312,10 +337,16 @@ const setupIpcHandlers = () => {
       webPreferences: {
         preload: path.join(__dirname, "preload.js"),
         backgroundThrottling: false,
+        webSecurity: false,
+        nodeIntegration: true,
       },
     });
 
     newWindow.setTitle(title);
+
+    newWindow.once("ready-to-show", () => {
+      newWindow.webContents.openDevTools();
+    });
 
     // Load the URL
     if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
@@ -358,6 +389,11 @@ const setupIpcHandlers = () => {
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send("toast-action-changed", action);
     }
+  });
+
+  // IPC handler to get overlay data (roomId and current_roles)
+  ipcMain.handle("get-overlay-data", async () => {
+    return { roomId, current_roles, username };
   });
 };
 
