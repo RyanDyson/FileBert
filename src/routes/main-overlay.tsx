@@ -24,7 +24,7 @@ export const MainOverlay = ({
   setAction: Dispatch<SetStateAction<Actions | null>>;
 }) => {
   const navigate = useNavigate();
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true); // Start expanded since we show toast initially
   const [editRoomName, setEditRoomName] = useState(false);
   const [roomCode, setRoomCode] = useState("123456");
   const [roomName, setRoomName] = useState("Lecture - Example Topic...");
@@ -32,6 +32,7 @@ export const MainOverlay = ({
   const [showConfirm, setShowConfirm] = useState(false);
   const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const isInitialMount = useRef(true);
   const expandWindow = useCallback(() => {
     if (!isExpanded) {
       setIsExpanded(true);
@@ -55,13 +56,14 @@ export const MainOverlay = ({
   }, [minimizeWindow]);
 
   useEffect(() => {
-    setIsExpanded(true);
+    // Set initial toast action
     setAction(isHost ? Actions.room_created : Actions.room_joined);
     setTimeout(() => {
       setAction(null);
       setIsExpanded(false);
     }, 3000);
-  }, []);
+    isInitialMount.current = false;
+  }, [isHost, setAction]);
 
   // Listen for toast action changes from IPC (e.g., from Settings window)
   useEffect(() => {
@@ -83,7 +85,8 @@ export const MainOverlay = ({
 
   // Resize window based on isExpanded state
   useEffect(() => {
-    if (window.electronAPI) {
+    if (window.electronAPI && !isInitialMount.current) {
+      // Only resize if not initial mount (initial mount will use window creation size)
       if (isExpanded) {
         window.electronAPI.resizeWindow(EXPANDED_WIDTH, EXPANDED_HEIGHT);
       } else {
@@ -141,7 +144,16 @@ export const MainOverlay = ({
         !isExpanded && "opacity-30"
       )}
     >
-      {action && <Toast action={action} />}
+      {action && (
+        <Toast
+          action={action}
+          props={{
+            isLoading: false,
+            fileName: "",
+            code: "",
+          }}
+        />
+      )}
       {showConfirm && isExpanded && (
         <ConfirmDialog
           title={

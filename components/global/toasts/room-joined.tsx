@@ -4,9 +4,15 @@ import { CopyButton } from "../copy-button";
 export const RoomJoinedToast = ({ code }: { code: string }) => {
   return (
     <div className="w-full h-full flex flex-col divide-y divide-border bg-card items-center justify-center">
-      <span>Joined room successfully</span>
-      <div>
-        <Input value={code} disabled />
+      <span className="text-sm font-medium w-full text-center pb-1">
+        Joined Room Successfully
+      </span>
+      <div className="flex items-center gap-2 pt-2 ">
+        <Input
+          className="bg-primary-foreground text-secondary-foreground min-w-64"
+          value={code}
+          disabled
+        />
         <CopyButton
           textToCopy={code}
           defaultTooltipText="Copy Room Code"
