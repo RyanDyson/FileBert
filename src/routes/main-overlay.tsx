@@ -313,7 +313,7 @@ export const MainOverlay = ({
           props={{
             isLoading: false,
             fileName: "",
-            code: "",
+            code: roomCode,
             ...toastProps,
           }}
         />
@@ -356,7 +356,7 @@ export const MainOverlay = ({
                   )}
                 >
                   <Input
-                    defaultValue={roomName}
+                    value={roomName}
                     className={cn(
                       "transition-all duration-300 ease-in-out bg-primary-foreground text-secondary-foreground",
                       editRoomName && "bg-secondary text-secondary-foreground"
@@ -407,7 +407,7 @@ export const MainOverlay = ({
               <div className="flex items-center gap-2 w-full">
                 <div className="flex items-center gap-1 w-full">
                   <Input
-                    defaultValue={roomCode}
+                    value={roomCode}
                     className="w-full bg-secondary text-secondary-foreground"
                     disabled
                     onChange={(e) => setRoomCode(e.target.value)}
