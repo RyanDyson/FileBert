@@ -1,5 +1,6 @@
 import { app, BrowserWindow, Menu, screen, ipcMain, clipboard } from "electron";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import started from "electron-squirrel-startup";
 
 // const ffi = require('ffi-napi');
@@ -28,8 +29,9 @@ const createWindow = (isOverlay = false) => {
 
   if (isOverlay) {
     // Create overlay window (frameless, always on top)
-    const overlayWidth = 600;
-    const overlayHeight = 50;
+    // Start at expanded size since toast will be shown initially
+    const overlayWidth = 650;
+    const overlayHeight = 120;
     const x = Math.floor((screenWidth - overlayWidth) / 2);
     const y = 0;
 
@@ -63,7 +65,7 @@ const createWindow = (isOverlay = false) => {
     } else {
       mainWindow.loadFile(
         path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),
-        { hash: "overlay" }
+        { hash: "/overlay" }
       );
     }
   } else {
@@ -175,8 +177,9 @@ const setupIpcHandlers = () => {
       const primaryDisplay = screen.getPrimaryDisplay();
       const { width: screenWidth } = primaryDisplay.workAreaSize;
 
-      const overlayWidth = 600;
-      const overlayHeight = 50;
+      // Start at expanded size since toast will be shown initially
+      const overlayWidth = 650;
+      const overlayHeight = 120;
       const x = Math.floor((screenWidth - overlayWidth) / 2);
       const y = 0;
 
@@ -215,13 +218,12 @@ const setupIpcHandlers = () => {
       if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
         mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL + "/overlay");
       } else {
-        mainWindow.loadFile(
-          path.join(
-            __dirname,
-            `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`
-          ),
-          { hash: "overlay" }
+        const filePath = path.join(
+          __dirname,
+          `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`
         );
+        const fileUrl = pathToFileURL(filePath).href + "#/overlay";
+        mainWindow.loadURL(fileUrl);
       }
 
       if (wasVisible) {
@@ -306,8 +308,8 @@ const setupIpcHandlers = () => {
     const { width: screenWidth, height: screenHeight } =
       primaryDisplay.workAreaSize;
 
-    const windowWidth = 500;
-    const windowHeight = 500;
+    const windowWidth = 800;
+    const windowHeight = 700;
     const x = Math.floor((screenWidth - windowWidth) / 2);
     const y = Math.floor((screenHeight - windowHeight) / 2);
 
@@ -350,10 +352,12 @@ const setupIpcHandlers = () => {
     if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
       newWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL + route);
     } else {
-      newWindow.loadFile(
-        path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),
-        { hash: route.slice(1) }
+      const filePath = path.join(
+        __dirname,
+        `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`
       );
+      const fileUrl = pathToFileURL(filePath).href + "#" + route;
+      newWindow.loadURL(fileUrl);
     }
 
     // Clean up when window is closed

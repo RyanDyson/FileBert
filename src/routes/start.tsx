@@ -1,4 +1,3 @@
-import { useNavigate } from "react-router-dom";
 import { Field, FieldLabel, FieldContent } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -48,7 +47,6 @@ type CreateRoomForm = z.infer<typeof createRoomSchema>;
 type JoinRoomForm = z.infer<typeof joinRoomSchema>;
 
 export const Start = () => {
-  const navigate = useNavigate();
   const [showNicknamePopup, setShowNicknamePopup] = useState(false);
   const [joinRoomCode, setJoinRoomCode] = useState("");
   const [loading, setLoading] = useState(false);
@@ -149,7 +147,6 @@ export const Start = () => {
       if (window.electronAPI?.switchToOverlay) {
         await window.electronAPI.switchToOverlay(roomId, current_roles, username);
       }
-      navigate("/overlay");
     } catch (error) {
       console.error("Failed to submit nickname:", error);
     }
