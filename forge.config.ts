@@ -10,6 +10,13 @@ import { FuseV1Options, FuseVersion } from "@electron/fuses";
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
+    extendInfo: {
+      NSCameraUseContinuityCameraDeviceType: true,
+      NSCameraUsageDescription:
+        "This application requires access to your camera for gesture control.",
+      NSMicrophoneUsageDescription:
+        "This application requires access to your microphone for audio input.",
+    },
   },
   rebuildConfig: {},
   makers: [

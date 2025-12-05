@@ -8,6 +8,8 @@ import { DownloadFileToast } from "./toasts/receive-file";
 import { PingerUserToast } from "./toasts/pinged-user";
 import { QuestionAskedToast } from "./toasts/question-asked";
 import { QuestionAnsweredToast } from "./toasts/questio-answered";
+import { QuestionTimeoutToast } from "./toasts/question-timeout";
+import React, { isValidElement, cloneElement } from "react";
 
 export enum Actions {
   send = "send",
@@ -19,6 +21,7 @@ export enum Actions {
   question_asked = "question_asked", //toast for host, when a user asks a question
   question_answered_yes = "question_answered_yes", //toast for user, when their question is answered yes
   question_answered_no = "question_answered_no", //toast for user, when their question is answered no
+  question_timeout = "question_timeout", //toast for user, when their question times out
 }
 
 export const toastConfig: Record<
@@ -54,12 +57,16 @@ export const toastConfig: Record<
   [Actions.question_answered_no]: {
     content: <QuestionAnsweredToast answer={false} />,
   },
+  [Actions.question_timeout]: {
+    content: <QuestionTimeoutToast />,
+  },
 };
 
 type ToastProps = {
   isLoading?: boolean;
   fileName?: string;
   code?: string;
+  question?: string; // Added question prop
 };
 
 export const Toast = ({
@@ -69,5 +76,14 @@ export const Toast = ({
   action: Actions;
   props: ToastProps;
 }) => {
-  return <div className="w-full h-full">{toastConfig[action].content}</div>;
+  // Clone element to pass additional props like question
+  const content = toastConfig[action].content;
+  if (isValidElement(content)) {
+    return (
+      <div className="w-full h-full">
+        {cloneElement(content as React.ReactElement, { ...props })}
+      </div>
+    );
+  }
+  return <div className="w-full h-full">{content}</div>;
 };

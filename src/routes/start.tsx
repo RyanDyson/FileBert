@@ -5,15 +5,14 @@ import { Separator } from "@/components/ui/separator";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod/v3";
-import { useRef, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { NicknamePopup } from "@/components/global/nickname-popup";
 import { Loader2 } from "lucide-react";
 import { WindowWrapper } from "@/components/global/window-wrapper";
-import { useQuery } from "@tanstack/react-query";
-import Webcam from "react-webcam";
+import { useMutation } from "@tanstack/react-query";
 import { useGesture } from "../lib/gesture/useGesture";
-import { GestureType } from "../lib/gesture/useGesture";
-import useGesture1 from "../hooks/useGesture1";
+import { toast } from "sonner";
+import { Toaster } from "@/components/ui/sonner";
 
 const formatZodError = (error: unknown): string => {
   if (typeof error === "string") return error;
@@ -37,26 +36,94 @@ const createRoomSchema = z.object({
 });
 
 const joinRoomSchema = z.object({
-  roomCode: z
-    .string()
-    .min(1, "Room code is required")
-    .regex(/^\d{6}$/, "Room code must be exactly 6 digits"),
+  roomCode: z.string().min(1, "Room code is required"),
 });
 
 type CreateRoomForm = z.infer<typeof createRoomSchema>;
 type JoinRoomForm = z.infer<typeof joinRoomSchema>;
 
+interface RoomResponse {
+  roomId: string;
+  current_roles: string;
+}
+
 export const Start = () => {
   const [showNicknamePopup, setShowNicknamePopup] = useState(false);
   const [joinRoomCode, setJoinRoomCode] = useState("");
-  const [loading, setLoading] = useState(false);
-  const webcamRef = useRef(null);
-  // const { isLoading, error, currentGesture } = useGesture1({
-  //   cameraRef: {
-  //     current: webcamRef.current?.video || null,
-  //   },
-  //   gesturePair: "open-close",
-  // });
+  const [joinError, setJoinError] = useState<string | undefined>(undefined);
+  const {
+    isLoading: isLoadingGesture,
+    error: errorGesture,
+    currentGesture,
+  } = useGesture({
+    gesturePair: "open-close",
+  });
+
+  const createRoomMutation = useMutation({
+    mutationFn: async (data: { nickname: string }) => {
+      const response = await fetch(
+        "https://filebertbackend.netlify.app/api/createRoom",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ username: data.nickname }),
+        }
+      );
+      if (!response.ok) {
+        throw new Error("Failed to create room");
+      }
+      return response.json();
+    },
+    onSuccess: (data: RoomResponse, variables: { nickname: string }) => {
+      setTimeout(async () => {
+        if (window.electronAPI?.switchToOverlay) {
+          console.log("Nickname received in main process:", variables.nickname);
+          await window.electronAPI.switchToOverlay(
+            data.roomId,
+            data.current_roles,
+            variables.nickname
+          );
+        }
+      }, 1000);
+    },
+  });
+
+  const joinRoomMutation = useMutation({
+    mutationFn: async (data: { roomId: string; username: string }) => {
+      const response = await fetch(
+        "https://filebertbackend.netlify.app/api/join",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(data),
+        }
+      );
+      if (!response.ok) {
+        throw new Error("Failed to join room");
+      }
+      return response.json();
+    },
+    onSuccess: (
+      data: RoomResponse,
+      variables: { roomId: string; username: string }
+    ) => {
+      setShowNicknamePopup(false);
+      if (window.electronAPI?.switchToOverlay) {
+        window.electronAPI.switchToOverlay(
+          data.roomId,
+          data.current_roles,
+          variables.username
+        );
+      }
+    },
+    onError: (error) => {
+      setJoinError(error.message || "Failed to join room");
+    },
+  });
 
   const createRoomForm = useForm<CreateRoomForm>({
     resolver: zodResolver(createRoomSchema),
@@ -73,83 +140,45 @@ export const Start = () => {
     },
   });
 
-  const onCreateRoomSubmit = async (dataForm: CreateRoomForm) => {
-    setLoading(true);
-    try {
-      const response = await fetch("https://filebertbackend.netlify.app/api/createRoom", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ username: dataForm.nickname }),
-      });
-
-      const responseData = await response.json();
-      const roomId = responseData.roomId;
-      const current_roles = responseData.current_roles;
-      const username = dataForm.nickname
-
-      if (!response.ok) {
-        throw new Error("Failed to create room");
-      }
-
-      setTimeout(async () => {
-        setLoading(false);
-        if (window.electronAPI?.switchToOverlay) {
-          console.log("Nickname received in main process:", username);
-          await window.electronAPI.switchToOverlay(roomId, current_roles, username);
-        }
-        navigate(`/overlay`);
-      }, 1000);
-    } catch (error) {
-      console.error("Failed to create room:", error);
-      setLoading(false);
-    }
+  const onCreateRoomSubmit = (dataForm: CreateRoomForm) => {
+    createRoomMutation.mutate({ nickname: dataForm.nickname });
   };
+
+  useEffect(() => {
+    if (currentGesture.current === "Open Room") {
+      toast.success("Gesture detected: " + currentGesture.current);
+    }
+    if (errorGesture) {
+      toast.error("Error detected: " + errorGesture);
+    }
+
+    if (currentGesture.current === "Open Room") {
+      if (createRoomForm.formState.isValid) {
+        createRoomForm.handleSubmit(onCreateRoomSubmit)();
+      }
+      if (joinRoomCode.length === 6) {
+        onJoinRoomSubmit(joinRoomForm.getValues());
+      }
+    }
+  }, [
+    currentGesture.current,
+    errorGesture,
+    createRoomForm.formState.isValid,
+    joinRoomCode,
+  ]);
 
   const onJoinRoomSubmit = async (data: JoinRoomForm) => {
-    setLoading(true);
-    try {
-      //call in set nickname
-
-      // Simulate successful join - show nickname popup
-      setTimeout(async () => {
-        setJoinRoomCode(data.roomCode);
-        setShowNicknamePopup(true);
-        setLoading(false);
-      }, 1000);
-    } catch (error) {
-      console.error("Failed to join room:", error);
-      setLoading(false);
-    }
+    // Simulate successful join - show nickname popup
+    setTimeout(() => {
+      setJoinError(undefined);
+      setJoinRoomCode(data.roomCode);
+      setShowNicknamePopup(true);
+    }, 1000);
   };
 
-  const handleNicknameSubmit = async (nickname: string) => {
-    try {
-      const response = await fetch("https://filebertbackend.netlify.app/api/join", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ roomId: joinRoomCode, username: nickname }),
-      });
-
-      const responseData = await response.json();
-      const roomId = responseData.roomId;
-      const current_roles = responseData.current_roles;
-      const username = nickname;
-
-      if (!response.ok) {
-        throw new Error("Failed to create room");
-      }
-
-      setShowNicknamePopup(false);
-      if (window.electronAPI?.switchToOverlay) {
-        await window.electronAPI.switchToOverlay(roomId, current_roles, username);
-      }
-    } catch (error) {
-      console.error("Failed to submit nickname:", error);
-    }
+  const handleNicknameSubmit = (nickname: string) => {
+    setJoinError(undefined);
+    joinRoomMutation.mutate({ roomId: joinRoomCode, username: nickname });
   };
 
   // Get all errors from create room form
@@ -158,7 +187,10 @@ export const Start = () => {
 
   return (
     <WindowWrapper title="FileBert">
-      {loading && (
+      <Toaster className="z-50 " />
+      {(createRoomMutation.isPending ||
+        joinRoomMutation.isPending ||
+        isLoadingGesture) && (
         <div className="w-full h-full fixed inset-0 bg-primary/50 backdrop-blur-sm flex items-center justify-center z-50">
           <Loader2 className="w-8 h-8 animate-spin text-primary-foreground" />
         </div>
@@ -168,11 +200,13 @@ export const Start = () => {
         <NicknamePopup
           onConfirm={handleNicknameSubmit}
           onCancel={() => setShowNicknamePopup(false)}
+          errorMessage={joinError}
+          isPending={joinRoomMutation.isPending}
         />
       )}
 
       {/* Main Content */}
-      <div className="flex-1 w-full h-full flex flex-col items-center justify-center px-6 py-8 max-w-md mx-auto w-full gap-4">
+      <div className="flex-1 h-full flex flex-col items-center justify-center px-6 py-8 pb-16 max-w-md mx-auto w-full gap-4">
         {/* Create Room Form */}
         <form
           onSubmit={createRoomForm.handleSubmit(onCreateRoomSubmit)}
@@ -246,13 +280,13 @@ export const Start = () => {
               <Input
                 id="roomCode"
                 {...joinRoomForm.register("roomCode")}
-                placeholder="123456"
+                placeholder="Enter room code"
                 className="bg-primary-foreground text-secondary-foreground"
                 aria-invalid={!!joinRoomForm.formState.errors.roomCode}
                 type="text"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                maxLength={6}
+                onChange={(e) => {
+                  setJoinRoomCode(e.target.value);
+                }}
               />
             </FieldContent>
           </Field>
@@ -277,9 +311,6 @@ export const Start = () => {
             ))}
           </div>
         </form>
-
-        <Webcam hidden={true} ref={webcamRef} />
-        {/* <p>{currentGesture.current}</p> */}
       </div>
     </WindowWrapper>
   );

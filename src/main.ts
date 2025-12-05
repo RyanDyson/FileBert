@@ -3,13 +3,16 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import started from "electron-squirrel-startup";
 
+declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string;
+declare const MAIN_WINDOW_VITE_NAME: string;
+
 // const ffi = require('ffi-napi');
 // const ref = require('ref-napi');
 // const StructType = require('ref-struct-di')(ref);
 // const ArrayType = require('ref-array-di')(ref);
 
-
 let mainWindow: BrowserWindow | null = null;
+let gestureWorkerWindow: BrowserWindow | null = null;
 const secondaryWindows = new Map<string, BrowserWindow>();
 
 let roomId: string | null = null;
@@ -20,6 +23,32 @@ let username: string | null = null;
 if (started) {
   app.quit();
 }
+
+const createGestureWorkerWindow = () => {
+  gestureWorkerWindow = new BrowserWindow({
+    show: false,
+    webPreferences: {
+      preload: path.join(__dirname, "preload.js"),
+      backgroundThrottling: false,
+      nodeIntegration: true,
+    },
+  });
+
+  if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
+    gestureWorkerWindow.loadURL(
+      MAIN_WINDOW_VITE_DEV_SERVER_URL + "/#/gesture-worker"
+    );
+  } else {
+    const filePath = path.join(
+      __dirname,
+      `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`
+    );
+    const fileUrl = pathToFileURL(filePath).href + "#/gesture-worker";
+    gestureWorkerWindow.loadURL(fileUrl);
+  }
+
+  // gestureWorkerWindow.webContents.openDevTools({ mode: "detach" }); // For debugging
+};
 
 const createWindow = (isOverlay = false) => {
   // Get primary display dimensions
@@ -113,6 +142,13 @@ const createWindow = (isOverlay = false) => {
   }
 };
 
+let questions = [
+  { id: 1, text: "Are you a good listener?" },
+  { id: 2, text: "Have you used React before?" },
+  { id: 3, text: "Do you like dark mode?" },
+  { id: 4, text: "Is this app helpful?" },
+];
+
 // Setup IPC handlers (registered once, globally)
 const setupIpcHandlers = () => {
   // IPC handler for resizing window with smooth animation
@@ -171,73 +207,109 @@ const setupIpcHandlers = () => {
     clipboard.writeText(text);
   });
 
-  // IPC handler to switch to overlay mode
-  ipcMain.handle("switch-to-overlay", async (_, newRoomId, newCurrentRoles, newUsername) => {
-    if (mainWindow) {
-      const primaryDisplay = screen.getPrimaryDisplay();
-      const { width: screenWidth } = primaryDisplay.workAreaSize;
-
-      // Start at expanded size since toast will be shown initially
-      const overlayWidth = 650;
-      const overlayHeight = 120;
-      const x = Math.floor((screenWidth - overlayWidth) / 2);
-      const y = 0;
-
-      // Store current window state
-      const wasVisible = mainWindow.isVisible();
-
-      // Close the current window
-      mainWindow.close();
-
-      // Create new frameless overlay window
-      mainWindow = new BrowserWindow({
-        width: overlayWidth,
-        height: overlayHeight,
-        frame: false, // No title bar
-        transparent: true,
-        backgroundColor: "#00000000",
-        alwaysOnTop: true,
-        skipTaskbar: false,
-        resizable: true,
-        hasShadow: true,
-        vibrancy: process.platform === "darwin" ? "under-window" : undefined,
-        visualEffectState: process.platform === "darwin" ? "active" : undefined,
-        x: x,
-        y: y,
-        webPreferences: {
-          preload: path.join(__dirname, "preload.js"),
-          backgroundThrottling: false,
-          webSecurity: false,
-          nodeIntegration: true,
-        },
-      });
-
-      mainWindow.setTitle("FileBert");
-
-      // Load the URL
-      if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
-        mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL + "/overlay");
-      } else {
-        const filePath = path.join(
-          __dirname,
-          `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`
-        );
-        const fileUrl = pathToFileURL(filePath).href + "#/overlay";
-        mainWindow.loadURL(fileUrl);
-      }
-
-      if (wasVisible) {
-        mainWindow.show();
-      }
-
-      roomId = newRoomId;
-      current_roles = newCurrentRoles;
-      username = newUsername;
-    }
+  // IPC handler to get questions
+  ipcMain.handle("get-questions", async () => {
+    return questions;
   });
+
+  // IPC handler to update questions
+  ipcMain.handle("update-questions", async (_, newQuestions) => {
+    console.log("Updating questions:", newQuestions.length);
+    questions = newQuestions;
+    // Notify question window if it's open
+    const questionWindow = secondaryWindows.get("/question");
+    if (questionWindow) {
+      if (!questionWindow.isDestroyed()) {
+        console.log("Sending update to question window");
+        questionWindow.webContents.send("questions-updated", questions);
+      } else {
+        console.log("Question window is destroyed");
+      }
+    } else {
+      console.log("Question window not found in secondaryWindows");
+    }
+    return true;
+  });
+
+  // IPC handler to switch to overlay mode
+  ipcMain.handle(
+    "switch-to-overlay",
+    async (_, newRoomId, newCurrentRoles, newUsername) => {
+      if (mainWindow) {
+        const primaryDisplay = screen.getPrimaryDisplay();
+        const { width: screenWidth } = primaryDisplay.workAreaSize;
+
+        // Start at expanded size since toast will be shown initially
+        const overlayWidth = 650;
+        const overlayHeight = 120;
+        const x = Math.floor((screenWidth - overlayWidth) / 2);
+        const y = 0;
+
+        // Store current window state
+        const wasVisible = mainWindow.isVisible();
+
+        // Close the current window
+        mainWindow.close();
+
+        // Create new frameless overlay window
+        mainWindow = new BrowserWindow({
+          width: overlayWidth,
+          height: overlayHeight,
+          frame: false, // No title bar
+          transparent: true,
+          backgroundColor: "#00000000",
+          alwaysOnTop: true,
+          skipTaskbar: false,
+          resizable: true,
+          hasShadow: true,
+          vibrancy: process.platform === "darwin" ? "under-window" : undefined,
+          visualEffectState:
+            process.platform === "darwin" ? "active" : undefined,
+          x: x,
+          y: y,
+          webPreferences: {
+            preload: path.join(__dirname, "preload.js"),
+            backgroundThrottling: false,
+            webSecurity: false,
+            nodeIntegration: true,
+          },
+        });
+
+        mainWindow.setTitle("FileBert");
+
+        // Load the URL
+        if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
+          mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL + "/#/overlay");
+        } else {
+          const filePath = path.join(
+            __dirname,
+            `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`
+          );
+          const fileUrl = pathToFileURL(filePath).href + "#/overlay";
+          mainWindow.loadURL(fileUrl);
+        }
+
+        if (wasVisible) {
+          mainWindow.show();
+        }
+
+        roomId = newRoomId;
+        current_roles = newCurrentRoles;
+        username = newUsername;
+      }
+    }
+  );
 
   // IPC handler to switch back to start screen (normal window)
   ipcMain.handle("switch-to-start-screen", async () => {
+    // Close all secondary windows
+    secondaryWindows.forEach((window) => {
+      if (!window.isDestroyed()) {
+        window.close();
+      }
+    });
+    secondaryWindows.clear();
+
     if (mainWindow) {
       roomId = null;
       current_roles = null;
@@ -298,7 +370,7 @@ const setupIpcHandlers = () => {
 
       if (wasVisible) {
         mainWindow.show();
-      } 
+      }
     }
   });
 
@@ -318,6 +390,15 @@ const setupIpcHandlers = () => {
     if (existingWindow && !existingWindow.isDestroyed()) {
       existingWindow.focus();
       return;
+    }
+
+    if (route === "/question") {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        console.log("Sending question-window-status: true");
+        mainWindow.webContents.send("question-window-status", true);
+      } else {
+        console.log("Main window not available or destroyed");
+      }
     }
 
     const newWindow = new BrowserWindow({
@@ -350,7 +431,7 @@ const setupIpcHandlers = () => {
 
     // Load the URL
     if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
-      newWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL + route);
+      newWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL + "/#" + route);
     } else {
       const filePath = path.join(
         __dirname,
@@ -363,6 +444,14 @@ const setupIpcHandlers = () => {
     // Clean up when window is closed
     newWindow.on("closed", () => {
       secondaryWindows.delete(route);
+      if (route === "/question") {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          console.log("Sending question-window-status: false");
+          mainWindow.webContents.send("question-window-status", false);
+        } else {
+          console.log("Main window not available or destroyed (closed event)");
+        }
+      }
     });
 
     secondaryWindows.set(route, newWindow);
@@ -383,17 +472,47 @@ const setupIpcHandlers = () => {
     createSecondaryWindow("/history", "FileBert - History");
   });
 
-  // IPC handler to set toast action (from secondary windows to main overlay)
-  ipcMain.handle("set-toast-action", async (_, action: string | null) => {
-    // Send the action to the main overlay window
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send("toast-action-changed", action);
-    }
+  // IPC handler to open question window
+  ipcMain.handle("open-question-window", async () => {
+    createSecondaryWindow("/question", "FileBert - Question");
   });
 
-  // IPC handler to get overlay data (roomId and current_roles)
+  // IPC handler to check if question window is open
+  ipcMain.handle("is-question-window-open", async () => {
+    const win = secondaryWindows.get("/question");
+    return !!(win && !win.isDestroyed());
+  });
+
+  ipcMain.handle(
+    "set-toast-action",
+    async (_, action: string | null, data?: unknown) => {
+      // Send the action to the main overlay window
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send("toast-action-changed", action, data);
+      }
+    }
+  );
   ipcMain.handle("get-overlay-data", async () => {
     return { roomId, current_roles, username };
+  });
+
+  // Gesture IPC
+  ipcMain.handle("send-gesture-data", async (_, data) => {
+    // Broadcast to main window and all secondary windows
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send("gesture-data-updated", data);
+    }
+    secondaryWindows.forEach((window) => {
+      if (!window.isDestroyed()) {
+        window.webContents.send("gesture-data-updated", data);
+      }
+    });
+  });
+
+  ipcMain.handle("set-gesture-config", async (_, config) => {
+    if (gestureWorkerWindow && !gestureWorkerWindow.isDestroyed()) {
+      gestureWorkerWindow.webContents.send("gesture-config-updated", config);
+    }
   });
 };
 
@@ -405,6 +524,7 @@ setupIpcHandlers();
 // Some APIs can only be used after this event occurs.
 app.on("ready", () => {
   createWindow(false); // Start with normal window (start screen)
+  createGestureWorkerWindow();
 });
 
 // Quit when all windows are closed, except on macOS. There, it's common
@@ -415,6 +535,10 @@ app.on("window-all-closed", () => {
     app.quit();
   }
 });
+
+// Fix for "Invalid mailbox" and "SharedImageManager" errors with transparent windows
+app.commandLine.appendSwitch("disable-features", "WidgetLayering");
+app.commandLine.appendSwitch("enable-transparent-visuals");
 
 app.on("activate", () => {
   // On OS X it's common to re-create a window in the app when the
