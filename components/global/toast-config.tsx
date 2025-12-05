@@ -9,7 +9,7 @@ import { PingerUserToast } from "./toasts/pinged-user";
 import { QuestionAskedToast } from "./toasts/question-asked";
 import { QuestionAnsweredToast } from "./toasts/questio-answered";
 import { QuestionTimeoutToast } from "./toasts/question-timeout";
-import React from "react";
+import React, { isValidElement, cloneElement } from "react";
 
 export enum Actions {
   send = "send",
@@ -78,10 +78,10 @@ export const Toast = ({
 }) => {
   // Clone element to pass additional props like question
   const content = toastConfig[action].content;
-  if (React.isValidElement(content)) {
+  if (isValidElement(content)) {
     return (
       <div className="w-full h-full">
-        {React.cloneElement(content as React.ReactElement, { ...props })}
+        {cloneElement(content as React.ReactElement, { ...props })}
       </div>
     );
   }

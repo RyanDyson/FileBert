@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Pencil, History, Users, Settings, Save, LogOut } from "lucide-react";
 import { cn } from "../lib/utils";
-import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { ConfirmDialog } from "../../components/global/confirm-dialog";
 import { CopyButton } from "../../components/global/copy-button";
 import { Actions, Toast } from "@/components/global/toast-config";
@@ -35,14 +35,20 @@ export const MainOverlay = ({
   const [message, setMessage] = useState<string>("");
   const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     const fetchOverlayData = async () => {
       try {
         const data = await window.electronAPI.getOverlayData();
-        
+
         if (data) {
           setRoomCode((prev) => {
-            console.log("Previous roomCode:", prev, "New roomCode:", data.roomId);
+            console.log(
+              "Previous roomCode:",
+              prev,
+              "New roomCode:",
+              data.roomId
+            );
             return data.roomId;
           });
 
@@ -54,7 +60,12 @@ export const MainOverlay = ({
 
           setNickname((prev) => {
             const newUsername = data.username;
-            console.log("Previous username:", prev, "New username:", newUsername);
+            console.log(
+              "Previous username:",
+              prev,
+              "New username:",
+              newUsername
+            );
             return newUsername;
           });
         }
@@ -65,7 +76,7 @@ export const MainOverlay = ({
 
     fetchOverlayData();
   }, []);
-    
+
   const expandWindow = useCallback(() => {
     if (!isExpanded) {
       setIsExpanded(true);
@@ -95,7 +106,6 @@ export const MainOverlay = ({
       setAction(null);
       setIsExpanded(false);
     }, 3000);
-    isInitialMount.current = false;
   }, [isHost, setAction]);
 
   const [toastProps, setToastProps] = useState<{
@@ -143,7 +153,7 @@ export const MainOverlay = ({
 
   // Resize window based on isExpanded state
   useEffect(() => {
-    if (window.electronAPI && !isInitialMount.current) {
+    if (window.electronAPI) {
       // Only resize if not initial mount (initial mount will use window creation size)
       if (isExpanded) {
         window.electronAPI.resizeWindow(EXPANDED_WIDTH, EXPANDED_HEIGHT);
@@ -185,24 +195,31 @@ export const MainOverlay = ({
   }, [isExpanded, expandWindow, resetInactivityTimer]);
 
   const handleLeave = async () => {
-    let current_roles = 'M';
-    if (isHost){
-      current_roles = 'H'
+    let current_roles = "M";
+    if (isHost) {
+      current_roles = "H";
     }
 
     try {
-      const response = await fetch("https://filebertbackend.netlify.app/api/leave", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ roomId: roomCode, username: nickname, current_roles: current_roles }),
-      });
+      const response = await fetch(
+        "https://filebertbackend.netlify.app/api/leave",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            roomId: roomCode,
+            username: nickname,
+            current_roles: current_roles,
+          }),
+        }
+      );
 
       const responseData = await response.json();
       const success = responseData.success;
 
-      if(success){
+      if (success) {
         if (window.electronAPI?.switchToStartScreen) {
           await window.electronAPI.switchToStartScreen();
         }
@@ -210,7 +227,7 @@ export const MainOverlay = ({
         setShowConfirm(false);
       }
       setShowConfirm(false);
-    } catch(error) {
+    } catch (error) {
       console.error("Failed to leave room:", error);
     }
   };
@@ -248,7 +265,9 @@ export const MainOverlay = ({
 
   const handleDownload = async () => {
     try {
-      const res = await fetch(`/api/receive?roomId=${encodeURIComponent(roomCode)}`);
+      const res = await fetch(
+        `/api/receive?roomId=${encodeURIComponent(roomCode)}`
+      );
       if (!res.ok) {
         const text = await res.text();
         throw new Error(text || res.statusText);

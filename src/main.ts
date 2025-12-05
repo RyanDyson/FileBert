@@ -3,12 +3,16 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import started from "electron-squirrel-startup";
 
+declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string;
+declare const MAIN_WINDOW_VITE_NAME: string;
+
 // const ffi = require('ffi-napi');
 // const ref = require('ref-napi');
 // const StructType = require('ref-struct-di')(ref);
 // const ArrayType = require('ref-array-di')(ref);
 
 let mainWindow: BrowserWindow | null = null;
+let gestureWorkerWindow: BrowserWindow | null = null;
 const secondaryWindows = new Map<string, BrowserWindow>();
 
 let roomId: string | null = null;
@@ -19,6 +23,32 @@ let username: string | null = null;
 if (started) {
   app.quit();
 }
+
+const createGestureWorkerWindow = () => {
+  gestureWorkerWindow = new BrowserWindow({
+    show: false,
+    webPreferences: {
+      preload: path.join(__dirname, "preload.js"),
+      backgroundThrottling: false,
+      nodeIntegration: true,
+    },
+  });
+
+  if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
+    gestureWorkerWindow.loadURL(
+      MAIN_WINDOW_VITE_DEV_SERVER_URL + "/#/gesture-worker"
+    );
+  } else {
+    const filePath = path.join(
+      __dirname,
+      `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`
+    );
+    const fileUrl = pathToFileURL(filePath).href + "#/gesture-worker";
+    gestureWorkerWindow.loadURL(fileUrl);
+  }
+
+  // gestureWorkerWindow.webContents.openDevTools({ mode: "detach" }); // For debugging
+};
 
 const createWindow = (isOverlay = false) => {
   // Get primary display dimensions
@@ -249,7 +279,7 @@ const setupIpcHandlers = () => {
 
         // Load the URL
         if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
-          mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL + "/overlay");
+          mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL + "/#/overlay");
         } else {
           const filePath = path.join(
             __dirname,
@@ -392,7 +422,7 @@ const setupIpcHandlers = () => {
 
     // Load the URL
     if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
-      newWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL + route);
+      newWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL + "/#" + route);
     } else {
       const filePath = path.join(
         __dirname,
@@ -442,6 +472,25 @@ const setupIpcHandlers = () => {
   ipcMain.handle("get-overlay-data", async () => {
     return { roomId, current_roles, username };
   });
+
+  // Gesture IPC
+  ipcMain.handle("send-gesture-data", async (_, data) => {
+    // Broadcast to main window and all secondary windows
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send("gesture-data-updated", data);
+    }
+    secondaryWindows.forEach((window) => {
+      if (!window.isDestroyed()) {
+        window.webContents.send("gesture-data-updated", data);
+      }
+    });
+  });
+
+  ipcMain.handle("set-gesture-config", async (_, config) => {
+    if (gestureWorkerWindow && !gestureWorkerWindow.isDestroyed()) {
+      gestureWorkerWindow.webContents.send("gesture-config-updated", config);
+    }
+  });
 };
 
 // Setup IPC handlers before creating window
@@ -452,6 +501,7 @@ setupIpcHandlers();
 // Some APIs can only be used after this event occurs.
 app.on("ready", () => {
   createWindow(false); // Start with normal window (start screen)
+  createGestureWorkerWindow();
 });
 
 // Quit when all windows are closed, except on macOS. There, it's common

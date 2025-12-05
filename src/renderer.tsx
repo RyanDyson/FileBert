@@ -38,6 +38,7 @@ import { Question } from "./routes/question";
 import { Actions } from "@/components/global/toast-config";
 import { useState } from "react";
 import { History } from "./routes/history";
+import { GestureWorker } from "./routes/gesture-worker";
 
 const App = () => {
   const [toastAction, setToastAction] = useState<Actions | null>(null);
@@ -54,6 +55,7 @@ const App = () => {
       <Route path="/settings" element={<Settings />} />
       <Route path="/history" element={<History />} />
       <Route path="/question" element={<Question />} />
+      <Route path="/gesture-worker" element={<GestureWorker />} />
     </Providers>
   );
 };

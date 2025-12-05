@@ -12,7 +12,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
   resizeWindow: (width: number, height: number) =>
     ipcRenderer.invoke("resize-window", width, height),
   writeClipboard: (text: string) => ipcRenderer.invoke("write-clipboard", text),
-  switchToOverlay: (roomId: string, current_roles: string, username: string) => {
+  switchToOverlay: (
+    roomId: string,
+    current_roles: string,
+    username: string
+  ) => {
     ipcRenderer.invoke("switch-to-overlay", roomId, current_roles, username);
   },
   switchToStartScreen: () => ipcRenderer.invoke("switch-to-start-screen"),
@@ -49,4 +53,27 @@ contextBridge.exposeInMainWorld("electronAPI", {
     };
   },
   getOverlayData: () => ipcRenderer.invoke("get-overlay-data"),
+  // Gesture IPC
+  sendGestureData: (data: unknown) =>
+    ipcRenderer.invoke("send-gesture-data", data),
+  onGestureData: (callback: (data: unknown) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, data: unknown) =>
+      callback(data);
+    ipcRenderer.on("gesture-data-updated", handler);
+    return () => {
+      ipcRenderer.removeListener("gesture-data-updated", handler);
+    };
+  },
+  setGestureConfig: (config: { gesturePair: string }) =>
+    ipcRenderer.invoke("set-gesture-config", config),
+  onGestureConfig: (callback: (config: { gesturePair: string }) => void) => {
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      config: { gesturePair: string }
+    ) => callback(config);
+    ipcRenderer.on("gesture-config-updated", handler);
+    return () => {
+      ipcRenderer.removeListener("gesture-config-updated", handler);
+    };
+  },
 });

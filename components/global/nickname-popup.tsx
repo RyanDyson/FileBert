@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
 import {
   Field,
   FieldLabel,
@@ -9,6 +10,8 @@ import { Input } from "@/components/ui/input";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useGesture } from "@/src/lib/gesture/useGesture";
+import { useEffect } from "react";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const nicknameSchema = (z as any).object({
@@ -33,10 +36,18 @@ const formatZodError = (error: unknown): string => {
 export const NicknamePopup = ({
   onConfirm,
   onCancel,
+  errorMessage,
+  isPending,
 }: {
   onConfirm: (nickname: string) => void;
   onCancel: () => void;
+  errorMessage?: string;
+  isPending?: boolean;
 }) => {
+  const { isLoading: isLoadingGesture, currentGesture } = useGesture({
+    gesturePair: "open-close",
+  });
+
   const form = useForm<NicknameForm>({
     resolver: zodResolver(nicknameSchema),
     defaultValues: {
@@ -47,6 +58,16 @@ export const NicknamePopup = ({
   const onSubmit = (data: NicknameForm) => {
     onConfirm(data.nickname);
   };
+
+  useEffect(() => {
+    if (
+      currentGesture.current === "Open Room" &&
+      !isLoadingGesture &&
+      !isPending
+    ) {
+      form.handleSubmit(onSubmit)();
+    }
+  }, [currentGesture.current, isLoadingGesture, isPending]);
 
   return (
     <div className="w-full h-full fixed z-50 inset-0 bg-primary/50 backdrop-blur-sm flex items-center justify-center">
@@ -72,6 +93,7 @@ export const NicknamePopup = ({
                 className="bg-background"
                 aria-invalid={!!form.formState.errors.nickname}
                 autoFocus
+                disabled={isPending || form.formState.isSubmitting}
               />
             </FieldContent>
             {form.formState.errors.nickname && (
@@ -89,12 +111,33 @@ export const NicknamePopup = ({
             )}
           </Field>
 
+          {errorMessage && (
+            <p className="text-sm text-destructive text-center">
+              {errorMessage}
+            </p>
+          )}
+
           <div className="flex items-center justify-end gap-2">
-            <Button variant="outline" type="button" onClick={onCancel}>
+            <Button
+              variant="outline"
+              type="button"
+              onClick={onCancel}
+              disabled={isPending || form.formState.isSubmitting}
+            >
               Cancel
             </Button>
-            <Button type="submit" disabled={form.formState.isSubmitting}>
-              {form.formState.isSubmitting ? "Submitting..." : "Confirm"}
+            <Button
+              type="submit"
+              disabled={form.formState.isSubmitting || isPending}
+            >
+              {form.formState.isSubmitting || isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Joining...
+                </>
+              ) : (
+                "Confirm"
+              )}
             </Button>
           </div>
         </form>

@@ -11,20 +11,27 @@ export interface ElectronAPI {
   openSettingsWindow: () => Promise<void>;
   openHistoryWindow: () => Promise<void>;
   openQuestionWindow: () => Promise<void>;
-  setToastAction: (action: string | null, data?: any) => Promise<void>;
+  setToastAction: (action: string | null, data?: unknown) => Promise<void>;
   getQuestions: () => Promise<{ id: number; text: string }[]>;
   updateQuestions: (questions: { id: number; text: string }[]) => Promise<void>;
   onQuestionsUpdated: (
     callback: (questions: { id: number; text: string }[]) => void
   ) => () => void;
   onToastAction: (
-    callback: (action: string | null, data?: any) => void
+    callback: (action: string | null, data?: unknown) => void
   ) => () => void;
   getOverlayData: () => Promise<{
     roomId: string;
     current_roles: string;
     username: string;
   }>;
+  // Gesture IPC
+  sendGestureData: (data: unknown) => Promise<void>;
+  onGestureData: (callback: (data: unknown) => void) => () => void;
+  setGestureConfig: (config: { gesturePair: string }) => Promise<void>;
+  onGestureConfig: (
+    callback: (config: { gesturePair: string }) => void
+  ) => () => void;
 }
 
 declare global {
