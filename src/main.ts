@@ -100,6 +100,13 @@ const createWindow = (isOverlay = false) => {
   }
 };
 
+let questions = [
+  { id: 1, text: "Are you a good listener?" },
+  { id: 2, text: "Have you used React before?" },
+  { id: 3, text: "Do you like dark mode?" },
+  { id: 4, text: "Is this app helpful?" },
+];
+
 // Setup IPC handlers (registered once, globally)
 const setupIpcHandlers = () => {
   // IPC handler for resizing window with smooth animation
@@ -156,6 +163,30 @@ const setupIpcHandlers = () => {
   // IPC handler for writing to clipboard
   ipcMain.handle("write-clipboard", async (_, text: string) => {
     clipboard.writeText(text);
+  });
+
+  // IPC handler to get questions
+  ipcMain.handle("get-questions", async () => {
+    return questions;
+  });
+
+  // IPC handler to update questions
+  ipcMain.handle("update-questions", async (_, newQuestions) => {
+    console.log("Updating questions:", newQuestions.length);
+    questions = newQuestions;
+    // Notify question window if it's open
+    const questionWindow = secondaryWindows.get("/question");
+    if (questionWindow) {
+      if (!questionWindow.isDestroyed()) {
+        console.log("Sending update to question window");
+        questionWindow.webContents.send("questions-updated", questions);
+      } else {
+        console.log("Question window is destroyed");
+      }
+    } else {
+      console.log("Question window not found in secondaryWindows");
+    }
+    return true;
   });
 
   // IPC handler to switch to overlay mode
@@ -219,6 +250,14 @@ const setupIpcHandlers = () => {
 
   // IPC handler to switch back to start screen (normal window)
   ipcMain.handle("switch-to-start-screen", async () => {
+    // Close all secondary windows
+    secondaryWindows.forEach((window) => {
+      if (!window.isDestroyed()) {
+        window.close();
+      }
+    });
+    secondaryWindows.clear();
+
     if (mainWindow) {
       const primaryDisplay = screen.getPrimaryDisplay();
       const { width: screenWidth, height: screenHeight } =
@@ -352,13 +391,20 @@ const setupIpcHandlers = () => {
     createSecondaryWindow("/history", "FileBert - History");
   });
 
-  // IPC handler to set toast action (from secondary windows to main overlay)
-  ipcMain.handle("set-toast-action", async (_, action: string | null) => {
-    // Send the action to the main overlay window
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send("toast-action-changed", action);
-    }
+  // IPC handler to open question window
+  ipcMain.handle("open-question-window", async () => {
+    createSecondaryWindow("/question", "FileBert - Question");
   });
+
+  ipcMain.handle(
+    "set-toast-action",
+    async (_, action: string | null, data?: unknown) => {
+      // Send the action to the main overlay window
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send("toast-action-changed", action, data);
+      }
+    }
+  );
 };
 
 // Setup IPC handlers before creating window

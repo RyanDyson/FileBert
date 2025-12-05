@@ -6,8 +6,16 @@ export interface ElectronAPI {
   openMembersWindow: () => Promise<void>;
   openSettingsWindow: () => Promise<void>;
   openHistoryWindow: () => Promise<void>;
-  setToastAction: (action: string | null) => Promise<void>;
-  onToastAction: (callback: (action: string | null) => void) => () => void;
+  openQuestionWindow: () => Promise<void>;
+  setToastAction: (action: string | null, data?: any) => Promise<void>;
+  getQuestions: () => Promise<{ id: number; text: string }[]>;
+  updateQuestions: (questions: { id: number; text: string }[]) => Promise<void>;
+  onQuestionsUpdated: (
+    callback: (questions: { id: number; text: string }[]) => void
+  ) => () => void;
+  onToastAction: (
+    callback: (action: string | null, data?: any) => void
+  ) => () => void;
 }
 
 declare global {

@@ -65,21 +65,46 @@ export const MainOverlay = ({
     isInitialMount.current = false;
   }, [isHost, setAction]);
 
+  const [toastProps, setToastProps] = useState<{
+    question?: string;
+  }>({});
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   // Listen for toast action changes from IPC (e.g., from Settings window)
   useEffect(() => {
     if (window.electronAPI?.onToastAction) {
-      const cleanup = window.electronAPI.onToastAction((action) => {
+      const cleanup = window.electronAPI.onToastAction((action, data) => {
         const actionValue = action as Actions | null;
+
+        // Clear existing timeout if any
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+          timeoutRef.current = null;
+        }
+
         setAction(actionValue);
+        if (data) {
+          setToastProps(data);
+        } else {
+          setToastProps({});
+        }
+
         if (actionValue) {
           setIsExpanded(true);
-          setTimeout(() => {
+          // Set new timeout
+          timeoutRef.current = setTimeout(() => {
             setAction(null);
             setIsExpanded(false);
+            timeoutRef.current = null;
           }, 3000);
         }
       });
-      return cleanup;
+      return () => {
+        cleanup();
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+        }
+      };
     }
   }, [setAction]);
 
@@ -151,6 +176,7 @@ export const MainOverlay = ({
             isLoading: false,
             fileName: "",
             code: "",
+            ...toastProps,
           }}
         />
       )}
