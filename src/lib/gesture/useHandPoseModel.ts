@@ -131,11 +131,12 @@ export const useHandPoseModel = ({
       }
 
       // Gesture recognition with state tracking
-      if (gesturePair === "send-receive") {
-        if (fingersExpandedConfidence > 0.75) {
-          currentGesture.current = "Send File";
-        } else if (fingersCurledConfidence > 0.75) {
-          currentGesture.current = "Receive File";
+      if (gesturePair === "open-close") {
+        if (dist_thumb_index < 15) {
+          currentGesture.current = "Open Room";
+        }
+        else if (dist_thumb_pinky < 15) {
+          currentGesture.current = "Close Room";
         } else {
           currentGesture.current = null;
         }
@@ -147,12 +148,13 @@ export const useHandPoseModel = ({
         } else {
           currentGesture.current = null;
         }
-      } else if (gesturePair === "open-close") {
-        if (dist_thumb_index < 10) {
-          currentGesture.current = "Open Room";
-        }
-        if (dist_thumb_pinky < 10) {
-          currentGesture.current = "Close Room";
+      } else if (gesturePair === "send-receive") {
+        if (fingersExpandedConfidence > 0.8) {
+          currentGesture.current = "Send File";
+        } else if (fingersCurledConfidence > 0.8) {
+          currentGesture.current = "Receive File";
+        } else {
+          currentGesture.current = null;
         }
       }
 

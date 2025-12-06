@@ -31,7 +31,12 @@ const createGestureWorkerWindow = () => {
       preload: path.join(__dirname, "preload.js"),
       backgroundThrottling: false,
       nodeIntegration: true,
+      webSecurity: false, // Allow loading resources
     },
+  });
+
+  gestureWorkerWindow.webContents.on("console-message", (_, level, message) => {
+    console.log(`[GestureWorker]: ${message}`);
   });
 
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
@@ -39,12 +44,10 @@ const createGestureWorkerWindow = () => {
       MAIN_WINDOW_VITE_DEV_SERVER_URL + "/#/gesture-worker"
     );
   } else {
-    const filePath = path.join(
-      __dirname,
-      `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`
+    gestureWorkerWindow.loadFile(
+      path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),
+      { hash: "gesture-worker" }
     );
-    const fileUrl = pathToFileURL(filePath).href + "#/gesture-worker";
-    gestureWorkerWindow.loadURL(fileUrl);
   }
 };
 
@@ -510,6 +513,26 @@ const setupIpcHandlers = () => {
 
 // Setup IPC handlers before creating window
 setupIpcHandlers();
+
+// if (!gotTheLock) {
+//   app.quit();
+// } else {
+//   app.on("second-instance", () => {
+//     // Someone tried to run a second instance, we should focus our window.
+//     if (mainWindow) {
+//       if (mainWindow.isMinimized()) mainWindow.restore();
+//       mainWindow.focus();
+//     }
+//   });
+
+//   // This method will be called when Electron has finished
+//   // initialization and is ready to create browser windows.
+//   // Some APIs can only be used after this event occurs.
+//   app.on("ready", () => {
+//     createWindow(false); // Start with normal window (start screen)
+//     createGestureWorkerWindow();
+//   });
+// }
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
