@@ -105,6 +105,7 @@ export const useHandPoseModel = ({
 
       console.log("Fingers Curled Confidence:", fingersCurledConfidence);
       console.log("Fingers Expanded Confidence:", fingersExpandedConfidence);
+      console.log("Index to  pinkky")
 
       if (!fingersCurled && !fingersExpanded) {
         currentGesture.current = null;
@@ -149,7 +150,7 @@ export const useHandPoseModel = ({
           currentGesture.current = null;
         }
       } else if (gesturePair === "send-receive") {
-        if (fingersExpandedConfidence > 0.8) {
+        if (fingersExpandedConfidence > 0.8 && dist_thumb_pinky >= 15) {
           currentGesture.current = "Send File";
         } else if (fingersCurledConfidence > 0.8) {
           currentGesture.current = "Receive File";
