@@ -105,7 +105,6 @@ export const useHandPoseModel = ({
 
       console.log("Fingers Curled Confidence:", fingersCurledConfidence);
       console.log("Fingers Expanded Confidence:", fingersExpandedConfidence);
-      console.log("Index to  pinkky")
 
       if (!fingersCurled && !fingersExpanded) {
         currentGesture.current = null;
@@ -126,6 +125,8 @@ export const useHandPoseModel = ({
         Math.pow(thumb[0] - pinky[0], 2) + Math.pow(thumb[1] - pinky[1], 2)
       );
 
+      console.log("Index to pinky: ", dist_thumb_pinky);
+
       if (!wasHandAbsent.current && !fingersExpanded) {
         currentGesture.current = null;
         return;
@@ -133,7 +134,7 @@ export const useHandPoseModel = ({
 
       // Gesture recognition with state tracking
       if (gesturePair === "open-close") {
-        if (dist_thumb_index < 15) {
+        if (dist_thumb_index < 10) {
           currentGesture.current = "Open Room";
         }
         else if (dist_thumb_pinky < 15) {
@@ -150,7 +151,7 @@ export const useHandPoseModel = ({
           currentGesture.current = null;
         }
       } else if (gesturePair === "send-receive") {
-        if (fingersExpandedConfidence > 0.8 && dist_thumb_pinky >= 15) {
+        if (fingersExpandedConfidence > 0.8 && dist_thumb_pinky >= 10) {
           currentGesture.current = "Send File";
         } else if (fingersCurledConfidence > 0.8) {
           currentGesture.current = "Receive File";
