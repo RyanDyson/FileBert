@@ -1,4 +1,5 @@
 import * as tf from "@tensorflow/tfjs";
+import "@tensorflow/tfjs-backend-webgl";
 import * as handpose from "@tensorflow-models/handpose";
 import { useEffect, useState, useRef } from "react";
 
@@ -136,8 +137,7 @@ export const useHandPoseModel = ({
       if (gesturePair === "open-close") {
         if (dist_thumb_index < 10) {
           currentGesture.current = "Open Room";
-        }
-        else if (dist_thumb_pinky < 15) {
+        } else if (dist_thumb_pinky < 15) {
           currentGesture.current = "Close Room";
         } else {
           currentGesture.current = null;
